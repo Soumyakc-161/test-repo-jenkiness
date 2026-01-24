@@ -1,0 +1,42 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "value": "CloudFrameDataFactory"
+        },
+        "CFT_Sink_AzureBlobStorage_connectionString": {
+            "value": ""
+        },
+        "CFT_Sql_Server1_password": {
+            "value": ""
+        },
+        "new_cft_SqlServer1_password": {
+            "value": ""
+        },
+        "CFT_Sql_Server1_properties_typeProperties_server": {
+            "value": "LAPTOP-9GFNROJ6\\SQLEXPRESS"
+        },
+        "CFT_Sql_Server1_properties_typeProperties_database": {
+            "value": "NetflixDB"
+        },
+        "CFT_Sql_Server1_properties_typeProperties_userName": {
+            "value": "sa"
+        },
+        "new_cft_SqlServer1_properties_typeProperties_server": {
+            "value": "SURAJ\\SQLEXPRESS"
+        },
+        "new_cft_SqlServer1_properties_typeProperties_database": {
+            "value": "NetflixDB"
+        },
+        "new_cft_SqlServer1_properties_typeProperties_userName": {
+            "value": "sa"
+        },
+        "containerUri": {
+            "value": ""
+        },
+        "containerSasToken": {
+            "value": ""
+        }
+    }
+}

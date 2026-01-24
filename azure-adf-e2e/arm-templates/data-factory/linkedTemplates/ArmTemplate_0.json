@@ -1,0 +1,667 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "type": "string",
+            "metadata": "Data Factory name",
+            "defaultValue": "CloudFrameDataFactory"
+        },
+        "CFT_Sql_Server1_password": {
+            "type": "secureString",
+            "metadata": "Secure string for 'password' of 'CFT_Sql_Server1'"
+        },
+        "new_cft_SqlServer1_password": {
+            "type": "secureString",
+            "metadata": "Secure string for 'password' of 'new_cft_SqlServer1'"
+        },
+        "CFT_Sink_AzureBlobStorage_connectionString": {
+            "type": "secureString",
+            "metadata": "Secure string for 'connectionString' of 'CFT_Sink_AzureBlobStorage'"
+        },
+        "CFT_Sql_Server1_properties_typeProperties_server": {
+            "type": "string",
+            "defaultValue": "LAPTOP-9GFNROJ6\\SQLEXPRESS"
+        },
+        "CFT_Sql_Server1_properties_typeProperties_database": {
+            "type": "string",
+            "defaultValue": "NetflixDB"
+        },
+        "CFT_Sql_Server1_properties_typeProperties_userName": {
+            "type": "string",
+            "defaultValue": "sa"
+        },
+        "new_cft_SqlServer1_properties_typeProperties_server": {
+            "type": "string",
+            "defaultValue": "SURAJ\\SQLEXPRESS"
+        },
+        "new_cft_SqlServer1_properties_typeProperties_database": {
+            "type": "string",
+            "defaultValue": "NetflixDB"
+        },
+        "new_cft_SqlServer1_properties_typeProperties_userName": {
+            "type": "string",
+            "defaultValue": "sa"
+        }
+    },
+    "variables": {
+        "factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+    },
+    "resources": [
+        {
+            "name": "[concat(parameters('factoryName'), '/CFT-Self-Hosted-IR')]",
+            "type": "Microsoft.DataFactory/factories/integrationRuntimes",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "type": "SelfHosted",
+                "typeProperties": {}
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/new-cft-integrationRuntime1')]",
+            "type": "Microsoft.DataFactory/factories/integrationRuntimes",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "type": "SelfHosted",
+                "typeProperties": {}
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/integrationRuntime1')]",
+            "type": "Microsoft.DataFactory/factories/integrationRuntimes",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "type": "SelfHosted",
+                "typeProperties": {}
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/default')]",
+            "type": "Microsoft.DataFactory/factories/managedVirtualNetworks",
+            "apiVersion": "2018-06-01",
+            "properties": {},
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/AutoResolveIntegrationRuntime')]",
+            "type": "Microsoft.DataFactory/factories/integrationRuntimes",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "type": "Managed",
+                "typeProperties": {
+                    "computeProperties": {
+                        "location": "AutoResolve",
+                        "dataFlowProperties": {
+                            "computeType": "General",
+                            "coreCount": 8,
+                            "timeToLive": 0
+                        }
+                    }
+                },
+                "managedVirtualNetwork": {
+                    "type": "ManagedVirtualNetworkReference",
+                    "referenceName": "default"
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/managedVirtualNetworks/default')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/CFT_Sql_Server1')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "SqlServer",
+                "typeProperties": {
+                    "server": "[parameters('CFT_Sql_Server1_properties_typeProperties_server')]",
+                    "database": "[parameters('CFT_Sql_Server1_properties_typeProperties_database')]",
+                    "encrypt": "mandatory",
+                    "trustServerCertificate": true,
+                    "authenticationType": "SQL",
+                    "userName": "[parameters('CFT_Sql_Server1_properties_typeProperties_userName')]",
+                    "password": {
+                        "type": "SecureString",
+                        "value": "[parameters('CFT_Sql_Server1_password')]"
+                    }
+                },
+                "connectVia": {
+                    "referenceName": "CFT-Self-Hosted-IR",
+                    "type": "IntegrationRuntimeReference"
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/integrationRuntimes/CFT-Self-Hosted-IR')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/new_cft_SqlServer1')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "SqlServer",
+                "typeProperties": {
+                    "server": "[parameters('new_cft_SqlServer1_properties_typeProperties_server')]",
+                    "database": "[parameters('new_cft_SqlServer1_properties_typeProperties_database')]",
+                    "encrypt": "mandatory",
+                    "trustServerCertificate": true,
+                    "authenticationType": "SQL",
+                    "userName": "[parameters('new_cft_SqlServer1_properties_typeProperties_userName')]",
+                    "password": {
+                        "type": "SecureString",
+                        "value": "[parameters('new_cft_SqlServer1_password')]"
+                    }
+                },
+                "connectVia": {
+                    "referenceName": "new-cft-integrationRuntime1",
+                    "type": "IntegrationRuntimeReference"
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/integrationRuntimes/new-cft-integrationRuntime1')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/CFT_Sink_AzureBlobStorage')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "AzureBlobStorage",
+                "typeProperties": {
+                    "connectionString": "[parameters('CFT_Sink_AzureBlobStorage_connectionString')]"
+                },
+                "connectVia": {
+                    "referenceName": "AutoResolveIntegrationRuntime",
+                    "type": "IntegrationRuntimeReference"
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/SqlServerTable1')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "new_cft_SqlServer1",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "SqlServerTable",
+                "schema": [
+                    {
+                        "name": "customer_id",
+                        "type": "int",
+                        "precision": 10
+                    },
+                    {
+                        "name": "first_name",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "last_name",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "email",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "country_code",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "country_name",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "currency",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "signup_date",
+                        "type": "date"
+                    },
+                    {
+                        "name": "plan",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "is_active",
+                        "type": "char"
+                    },
+                    {
+                        "name": "churn_date",
+                        "type": "date"
+                    },
+                    {
+                        "name": "payment_method",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "invoice_id",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "invoice_date",
+                        "type": "date"
+                    },
+                    {
+                        "name": "quantity_months",
+                        "type": "int",
+                        "precision": 10
+                    },
+                    {
+                        "name": "monthly_fee_usd",
+                        "type": "float",
+                        "precision": 15
+                    },
+                    {
+                        "name": "discount_usd",
+                        "type": "float",
+                        "precision": 15
+                    },
+                    {
+                        "name": "tax_usd",
+                        "type": "float",
+                        "precision": 15
+                    },
+                    {
+                        "name": "amount_usd",
+                        "type": "float",
+                        "precision": 15
+                    },
+                    {
+                        "name": "amount_local",
+                        "type": "float",
+                        "precision": 15
+                    },
+                    {
+                        "name": "device_type",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "hours_watched",
+                        "type": "float",
+                        "precision": 15
+                    },
+                    {
+                        "name": "primary_genre",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "referral_source",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "region",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "city",
+                        "type": "varchar"
+                    }
+                ],
+                "typeProperties": {
+                    "schema": "dbo",
+                    "table": "netflix_customer_sales_100k"
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/new_cft_SqlServer1')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/sink_dataset')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "CFT_Sink_AzureBlobStorage",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobStorageLocation",
+                        "folderPath": "new_input",
+                        "container": "rawdata"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/CFT_Sink_AzureBlobStorage')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/DS_ADLS_RawFile')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "CFT_Sink_AzureBlobStorage",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobStorageLocation",
+                        "fileName": {
+                            "value": "@{variables('currentTable')}/*.csv",
+                            "type": "Expression"
+                        },
+                        "folderPath": "inputs",
+                        "container": "rawdata"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/CFT_Sink_AzureBlobStorage')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/child')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "ForEach_Tables",
+                        "type": "ForEach",
+                        "dependsOn": [],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "items": {
+                                "value": "@split(pipeline().parameters.tables, ',')\n",
+                                "type": "Expression"
+                            },
+                            "activities": [
+                                {
+                                    "name": "Set_Table_Name",
+                                    "type": "SetVariable",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "variableName": "currentTable",
+                                        "value": {
+                                            "value": "@item()",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "CFT dm-Copy data1",
+                                    "type": "Copy",
+                                    "dependsOn": [
+                                        {
+                                            "activity": "Set_Table_Name",
+                                            "dependencyConditions": [
+                                                "Succeeded"
+                                            ]
+                                        }
+                                    ],
+                                    "policy": {
+                                        "timeout": "0.12:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "source": {
+                                            "type": "SqlServerSource",
+                                            "queryTimeout": "02:00:00",
+                                            "partitionOption": "None"
+                                        },
+                                        "sink": {
+                                            "type": "DelimitedTextSink",
+                                            "storeSettings": {
+                                                "type": "AzureBlobStorageWriteSettings"
+                                            },
+                                            "formatSettings": {
+                                                "type": "DelimitedTextWriteSettings",
+                                                "quoteAllText": true,
+                                                "fileExtension": ".txt"
+                                            }
+                                        },
+                                        "enableStaging": false,
+                                        "translator": {
+                                            "type": "TabularTranslator",
+                                            "typeConversion": true,
+                                            "typeConversionSettings": {
+                                                "allowDataTruncation": true,
+                                                "treatBooleanAsNumber": false
+                                            }
+                                        }
+                                    },
+                                    "inputs": [
+                                        {
+                                            "referenceName": "SqlServerTable1",
+                                            "type": "DatasetReference",
+                                            "parameters": {}
+                                        }
+                                    ],
+                                    "outputs": [
+                                        {
+                                            "referenceName": "sink_dataset",
+                                            "type": "DatasetReference",
+                                            "parameters": {}
+                                        }
+                                    ]
+                                },
+                                {
+                                    "name": "GetMetadata_FileExists",
+                                    "type": "GetMetadata",
+                                    "dependsOn": [
+                                        {
+                                            "activity": "CFT dm-Copy data1",
+                                            "dependencyConditions": [
+                                                "Succeeded"
+                                            ]
+                                        }
+                                    ],
+                                    "policy": {
+                                        "timeout": "0.12:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "dataset": {
+                                            "referenceName": "DS_ADLS_RawFile",
+                                            "type": "DatasetReference",
+                                            "parameters": {}
+                                        },
+                                        "fieldList": [
+                                            "columnCount",
+                                            "exists",
+                                            "structure"
+                                        ],
+                                        "storeSettings": {
+                                            "type": "AzureBlobStorageReadSettings",
+                                            "recursive": true,
+                                            "enablePartitionDiscovery": false
+                                        },
+                                        "formatSettings": {
+                                            "type": "DelimitedTextReadSettings"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "parameters": {
+                    "lastWatermark": {
+                        "type": "string",
+                        "defaultValue": "2025-01-01 00:00:00"
+                    },
+                    "runId": {
+                        "type": "string",
+                        "defaultValue": "concat(pipeline().RunId,'_',formatDateTime(utcNow(),'yyyyMMddHHmmss'))"
+                    },
+                    "tables": {
+                        "type": "string",
+                        "defaultValue": "dbo.netflix_customer_sales_100k"
+                    }
+                },
+                "variables": {
+                    "currentTable": {
+                        "type": "String"
+                    },
+                    "ingestFileName": {
+                        "type": "String"
+                    },
+                    "fileFolder": {
+                        "type": "String"
+                    }
+                },
+                "annotations": [],
+                "lastPublishTime": "2026-01-23T13:12:45Z"
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/datasets/SqlServerTable1')]",
+                "[concat(variables('factoryId'), '/datasets/sink_dataset')]",
+                "[concat(variables('factoryId'), '/datasets/DS_ADLS_RawFile')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/CFT-dm-pipeline1')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "Lookup_RowCount",
+                        "type": "Lookup",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "0.12:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "source": {
+                                "type": "SqlServerSource",
+                                "sqlReaderQuery": "SELECT COUNT(*) AS TotalRows FROM dbo.netflix_customer_sales_100k;\n",
+                                "queryTimeout": "02:00:00",
+                                "partitionOption": "None"
+                            },
+                            "dataset": {
+                                "referenceName": "SqlServerTable1",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        }
+                    },
+                    {
+                        "name": "If_HasRows",
+                        "type": "IfCondition",
+                        "dependsOn": [
+                            {
+                                "activity": "Lookup_RowCount",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "expression": {
+                                "value": "@greater(int(activity('Lookup_RowCount').output.firstRow.TotalRows), 0)\n",
+                                "type": "Expression"
+                            },
+                            "ifFalseActivities": [
+                                {
+                                    "name": "Fail_NoRows",
+                                    "type": "Fail",
+                                    "dependsOn": [],
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "message": "No rows found in SQL Server table. Aborting pipeline.",
+                                        "errorCode": {
+                                            "value": "@activity('Lookup_RowCount').output.firstRow",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                }
+                            ],
+                            "ifTrueActivities": [
+                                {
+                                    "name": "Execute Pipeline1",
+                                    "type": "ExecutePipeline",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "pipeline": {
+                                            "referenceName": "child",
+                                            "type": "PipelineReference"
+                                        },
+                                        "waitOnCompletion": true,
+                                        "parameters": {}
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "variables": {
+                    "currentTable": {
+                        "type": "String"
+                    },
+                    "ingestFileName": {
+                        "type": "String"
+                    },
+                    "fileFolder": {
+                        "type": "String"
+                    }
+                },
+                "annotations": [],
+                "lastPublishTime": "2025-12-01T06:54:31Z"
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/datasets/SqlServerTable1')]",
+                "[concat(variables('factoryId'), '/pipelines/child')]"
+            ]
+        }
+    ]
+}
