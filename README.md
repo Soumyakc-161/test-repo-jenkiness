@@ -1,12 +1,10 @@
-Perfect 👍
-Here’s a **clean, professional README.md for the `main` branch**, aligned with how real teams document production branches.
-You can copy-paste this directly.
+
 
 ---
 
-# 🚀 main — Azure ARM Infrastructure (Production-Ready)
+# main — Azure ARM Infrastructure (Production-Ready)
 
-## 📌 Purpose of the Main Branch
+##  Purpose of the Main Branch
 
 The **`main`** branch represents the **stable, production-ready source of truth** for Azure infrastructure defined using **ARM templates**.
 
@@ -14,28 +12,28 @@ This branch contains **approved, tested, and validated code only** and is used f
 
 ---
 
-## 🎯 What This Branch Is Used For
+##  What This Branch Is Used For
 
-* ✅ Production-ready Azure ARM templates
-* ✅ Jenkins CI/CD deployments to stable environments
-* ✅ Infrastructure consistency across environments
-* ✅ Audit-friendly and version-controlled deployments
-* ✅ Long-term maintenance and enhancements
-
----
-
-## 🚫 What This Branch Is NOT For
-
-* ❌ No experimental changes
-* ❌ No pipeline testing
-* ❌ No ad-hoc debugging
-* ❌ No direct commits without review
-
-> ⚠️ **All changes must be tested in a dedicated test branch before merging into `main`.**
+*  Production-ready Azure ARM templates
+*  Jenkins CI/CD deployments to stable environments
+*  Infrastructure consistency across environments
+*  Audit-friendly and version-controlled deployments
+*  Long-term maintenance and enhancements
 
 ---
 
-## 🏗️ Azure Resources Managed From `main`
+##  What This Branch Is NOT For
+
+* No experimental changes
+* No pipeline testing
+* No ad-hoc debugging
+* No direct commits without review
+
+>  **All changes must be tested in a dedicated test branch before merging into `main`.**
+
+---
+
+##  Azure Resources Managed From `main`
 
 ARM templates in this branch can deploy and manage:
 
@@ -51,7 +49,7 @@ ARM templates in this branch can deploy and manage:
 
 ---
 
-## 🔁 CI/CD Workflow (Production)
+##CI/CD Workflow (Production)
 
 1. Changes are developed and validated in a test branch
 2. Pull Request is created to merge into `main`
@@ -63,7 +61,7 @@ ARM templates in this branch can deploy and manage:
 
 ---
 
-## 🔐 Quality & Safety Controls
+##  Quality & Safety Controls
 
 The `main` branch enforces:
 
@@ -75,26 +73,26 @@ The `main` branch enforces:
 
 ---
 
-## 🧪 Relationship With Test Branches
+##  Relationship With Test Branches
 
 | Branch            | Purpose                       |
 | ----------------- | ----------------------------- |
 | `test_22-01-2026` | CI/CD testing & validation    |
 | `main`            | Stable, production-ready code |
 
-> ✅ **Only validated code from test branches is merged into `main`.**
+>  **Only validated code from test branches is merged into `main`.**
 
 ---
 
-## 🧩 Why This Branch Matters
+## Why This Branch Matters
 
 Using a protected `main` branch ensures:
 
-* 🔒 Infrastructure stability
-* 📜 Clear change history
-* 🔁 Repeatable deployments
-* 🧠 Confidence in automation
-* 🏢 Enterprise-grade DevOps practices
+*  Infrastructure stability
+*  Clear change history
+*  Repeatable deployments
+*  Confidence in automation
+*  Enterprise-grade DevOps practices
 
 ---
 
@@ -109,7 +107,7 @@ Using a protected `main` branch ensures:
 
 ---
 
-## ✅ When to Use the Main Branch
+##  When to Use the Main Branch
 
 Use `main` when you need to:
 
