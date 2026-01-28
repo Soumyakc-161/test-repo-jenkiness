@@ -156,18 +156,18 @@ pipeline {
 }
 
 
-        stage('ARM What-If - Data Factory') {
-    steps {
-        echo "🔍 Previewing Azure changes using ARM What-If..."
+//         stage('ARM What-If - Data Factory') {
+//     steps {
+//         echo "🔍 Previewing Azure changes using ARM What-If..."
 
-        sh """
-        az deployment group what-if \
-          --resource-group rg-validation \
-          --template-file azure-adf-e2e/arm-templates/data-factory/ARMTemplateForFactory.json \
-          --parameters azure-adf-e2e/arm-templates/data-factory/ARMTemplateParametersForFactory.json
-        """
-    }
-}
+//         sh """
+//         az deployment group what-if \
+//           --resource-group rg-validation \
+//           --template-file azure-adf-e2e/arm-templates/data-factory/ARMTemplateForFactory.json \
+//           --parameters azure-adf-e2e/arm-templates/data-factory/ARMTemplateParametersForFactory.json
+//         """
+//     }
+// }
 
 
         stage('Publish ARM Artifact') {
