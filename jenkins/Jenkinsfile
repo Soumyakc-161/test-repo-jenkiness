@@ -58,22 +58,27 @@ pipeline {
             }
         }
 
-        stage('CI Validate - Resource Group Template') {
+        stage('Validate - Resource Group Template') {
     steps {
-        echo "✅ CI: Checking ARM template file exists (Windows)"
+        echo "🔍 CI: Validating Resource Group ARM template structure"
 
         bat '''
-        dir azure-adf-e2e\\arm-templates\\resource-group
-        if not exist azure-adf-e2e\\arm-templates\\resource-group\\rg.json (
-            echo ❌ rg.json not found
+        echo Checking resource-group folder...
+        if not exist azure-adf-e2e\\arm-templates\\resource-group (
+            echo ❌ ERROR: resource-group folder is missing
             exit /b 1
         )
-        '''
 
-        echo "✅ CI validation passed"
+        echo Checking rg.json file...
+        if not exist azure-adf-e2e\\arm-templates\\resource-group\\rg.json (
+            echo ❌ ERROR: rg.json file is missing
+            exit /b 1
+        )
+
+        echo ✅ Resource Group ARM template validation passed
+        '''
     }
 }
-
 
         stage('ARM Validate - Data Factory') {
             steps {
