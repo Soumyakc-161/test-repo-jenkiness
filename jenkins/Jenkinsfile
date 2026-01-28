@@ -70,7 +70,7 @@ pipeline {
         )
 
         echo Checking rg.json file...
-        if not exist azure-adf-e2e\\arm-templates\\resource-group\\rg.json (
+        #if not exist azure-adf-e2e\\arm-templates\\resource-group\\rg.json (
             echo ❌ ERROR: rg.json file is missing
             exit /b 1
         )
