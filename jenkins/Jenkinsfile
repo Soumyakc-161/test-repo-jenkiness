@@ -58,20 +58,18 @@ pipeline {
             }
         }
 
-        stage('CI Validate - Resource Group Template') {
+        stage('DEBUG - Show Workspace') {
     steps {
-        echo "✅ CI: Checking Resource Group ARM template exists and is readable..."
-
         sh '''
-        test -f azure-adf-e2e/arm-templates/resource-group/rg.json
+        echo "=== CURRENT DIRECTORY ==="
+        pwd
 
-        # Basic JSON structure check (no ARM evaluation)
-        cat azure-adf-e2e/arm-templates/resource-group/rg.json > /dev/null
+        echo "=== LIST FILES ==="
+        ls -R
         '''
-
-        echo "✅ CI validation passed (ARM template file is valid for CI)"
     }
 }
+
 
 
 
