@@ -80,7 +80,7 @@ pipeline {
     }
 }
 
-        stage('CI Validate - Data Factory Templates') {
+        stage('Validate - Data Factory Templates') {
     steps {
         bat '''
         echo ===============================
