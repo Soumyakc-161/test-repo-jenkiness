@@ -58,17 +58,22 @@ pipeline {
             }
         }
 
-        stage('DEBUG - Show Workspace') {
+        stage('CI Validate - Resource Group Template') {
     steps {
-        bat '''
-        echo === CURRENT DIRECTORY ===
-        cd
+        echo "✅ CI: Checking ARM template file exists (Windows)"
 
-        echo === LIST FILES ===
-        dir /s
+        bat '''
+        dir azure-adf-e2e\\arm-templates\\resource-group
+        if not exist azure-adf-e2e\\arm-templates\\resource-group\\rg.json (
+            echo ❌ rg.json not found
+            exit /b 1
+        )
         '''
+
+        echo "✅ CI validation passed"
     }
 }
+
 
         stage('ARM Validate - Data Factory') {
             steps {
