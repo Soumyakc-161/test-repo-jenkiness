@@ -60,18 +60,15 @@ pipeline {
 
         stage('DEBUG - Show Workspace') {
     steps {
-        sh '''
-        echo "=== CURRENT DIRECTORY ==="
-        pwd
+        bat '''
+        echo === CURRENT DIRECTORY ===
+        cd
 
-        echo "=== LIST FILES ==="
-        ls -R
+        echo === LIST FILES ===
+        dir /s
         '''
     }
 }
-
-
-
 
         stage('ARM Validate - Data Factory') {
             steps {
