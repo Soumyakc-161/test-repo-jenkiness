@@ -10,7 +10,7 @@ pipeline {
         stage('Validate Branch & Checkout') {
             steps {
                 script {
-                    def repoUrl = "https://github.com/SurajHalakati/my-jenkins-project.git"
+                    def repoUrl = "https://github.com/Soumyakc-161/test-repo-jenkiness.git"
 
                     echo "Branch entered: ${params.BRANCH_NAME}"
 
@@ -29,7 +29,6 @@ pipeline {
             }
         }
 
-        // 🔽 ONLY THIS STAGE IS SLIGHTLY MODIFIED
         stage('Validate Files') {
             steps {
                 script {
@@ -53,7 +52,7 @@ pipeline {
                         echo "✅ File validation passed (Only .json + Jenkinsfile)"
                     }
                     catch (err) {
-                        echo "❌ Validate Files failed, but continuing pipeline to next stage"
+                        echo "❌ Validate Files failed, but continuing pipeline"
                     }
                 }
             }
@@ -71,9 +70,38 @@ pipeline {
             }
         }
 
-        stage('Success') {
+        stage('ARM Validate - Data Factory') {
             steps {
-                echo "✅ Pipeline Passed"
+                echo "✅ Validating Data Factory ARM template..."
+
+                sh """
+                az deployment group validate \
+                  --resource-group rg-validation \
+                  --template-file azure-adf-e2e/arm-templates/data-factory/ARMTemplateForFactory.json \
+                  --parameters azure-adf-e2e/arm-templates/data-factory/ARMTemplateParametersForFactory.json
+                """
+            }
+        }
+
+        stage('ARM What-If - Data Factory') {
+            steps {
+                echo "🔍 Previewing Azure changes using ARM What-If..."
+
+                sh """
+                az deployment group what-if \
+                  --resource-group rg-validation \
+                  --template-file azure-adf-e2e/arm-templates/data-factory/ARMTemplateForFactory.json \
+                  --parameters azure-adf-e2e/arm-templates/data-factory/ARMTemplateParametersForFactory.json
+                """
+            }
+        }
+
+        stage('Publish ARM Artifact') {
+            steps {
+                echo "📦 Publishing ARM templates as artifact..."
+
+                archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
+                                 fingerprint: true
             }
         }
     }
