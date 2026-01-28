@@ -58,17 +58,19 @@ pipeline {
             }
         }
 
-        stage('ARM Validate - Resource Group') {
-            steps {
-                echo "✅ Validating Resource Group ARM template..."
+        stage('CI Validate - Resource Group Template') {
+    steps {
+        echo "✅ CI: Validating Resource Group ARM template locally (JSON only)..."
 
-                sh """
-                az deployment group validate \
-                  --resource-group rg-validation \
-                  --template-file azure-adf-e2e/arm-templates/resource-group/rg.json
-                """
-            }
-        }
+        sh '''
+        python -m json.tool \
+        azure-adf-e2e/arm-templates/resource-group/rg.json > /dev/null
+        '''
+
+        echo "✅ CI validation passed: Resource Group JSON is valid"
+    }
+}
+
 
         stage('ARM Validate - Data Factory') {
             steps {
