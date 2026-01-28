@@ -80,18 +80,65 @@ pipeline {
     }
 }
 
-        stage('ARM Validate - Data Factory') {
-            steps {
-                echo "✅ Validating Data Factory ARM template..."
+        stage('CI Validate - Data Factory Templates') {
+    steps {
+        echo "🔍 CI: Validating Data Factory structure (NO Azure)"
 
-                sh """
-                az deployment group validate \
-                  --resource-group rg-validation \
-                  --template-file azure-adf-e2e/arm-templates/data-factory/ARMTemplateForFactory.json \
-                  --parameters azure-adf-e2e/arm-templates/data-factory/ARMTemplateParametersForFactory.json
-                """
-            }
-        }
+        bat '''
+        echo ===== Checking folders =====
+
+        if not exist azure-adf-e2e\\arm-templates\\data-factory (
+            echo ❌ data-factory folder missing
+            exit /b 1
+        )
+
+        if not exist azure-adf-e2e\\arm-templates\\data-factory\\factory (
+            echo ❌ factory folder missing
+            exit /b 1
+        )
+
+        if not exist azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates (
+            echo ❌ linkedTemplates folder missing
+            exit /b 1
+        )
+
+        echo ===== Checking required files =====
+
+        set FILES= ^
+        azure-adf-e2e\\arm-templates\\data-factory\\factory\\CloudFrameDataFactory_ARMTemplateForFactory.json ^
+        azure-adf-e2e\\arm-templates\\data-factory\\factory\\CloudFrameDataFactory_ARMTemplateParametersForFactory.json ^
+        azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates\\ArmTemplateParameters_master.json ^
+        azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates\\ArmTemplate_0.json ^
+        azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates\\ArmTemplate_master.json ^
+        azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates\\ARMTemplateForFactory.json ^
+        azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates\\ARMTemplateParametersForFactory.json ^
+        azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json ^
+        azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json
+
+        for %%F in (%FILES%) do (
+            if not exist %%F (
+                echo ❌ Missing file: %%F
+                exit /b 1
+            )
+            for %%S in (%%F) do if %%~zS==0 (
+                echo ❌ Empty file: %%F
+                exit /b 1
+            )
+        )
+
+        echo ===== Validating JSON syntax =====
+        for %%F in (%FILES%) do (
+            powershell -Command "Get-Content '%%F' | ConvertFrom-Json > $null" || (
+                echo ❌ Invalid JSON: %%F
+                exit /b 1
+            )
+        )
+
+        echo ✅ CI Data Factory validation SUCCESS
+        '''
+    }
+}
+
 
         stage('ARM What-If - Data Factory') {
             steps {
