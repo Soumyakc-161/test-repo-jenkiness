@@ -75,6 +75,9 @@ pipeline {
             exit /b 1
         )
 
+        REM Basic JSON readability check
+        type azure-adf-e2e\\arm-templates\\resource-group\\rg.json >nul || exit /b 1
+
         echo ✅ Resource Group ARM template validation passed
         '''
     }
