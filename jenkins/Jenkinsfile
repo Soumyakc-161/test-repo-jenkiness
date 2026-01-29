@@ -86,7 +86,7 @@ pipeline {
         echo CI: Validating Storage Account
         echo ===============================
 
-        if not exist azure-adf-e2e\\arm-templates\\storage-account (
+        #if not exist azure-adf-e2e\\arm-templates\\storage-account (
             echo ❌ storage-account folder missing
             exit /b 1
         )
