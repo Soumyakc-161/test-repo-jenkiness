@@ -153,10 +153,16 @@ pipeline {
             type %%f >nul || exit /b 1
         )
 
+        REM 8. Validate all factory JSON
+        for %%f in (azure-adf-e2e\\arm-templates\\data-factory\\factory\\*.json) do (
+            type %%f >nul || exit /b 1
+        )
+
         echo ✅ CI Data Factory validation PASSED
         '''
     }
 }
+
 //         stage('Validate - Storage Account Template') {
 //     steps {
 //         bat '''
