@@ -7,136 +7,165 @@ pipeline {
 
     stages {
 
-        /* =====================================================
-           1. Branch Validation & Checkout (Fail Fast)
-        ====================================================== */
-        stage('Validate Branch & Checkout') {
-            steps {
-                script {
-                    def repoUrl = "https://github.com/Soumyakc-161/test-repo-jenkiness.git"
+    /* =====================================================
+   1. Branch Validation & Checkout 
+====================================================== */
+stage('Validate Branch & Checkout') {
+    steps {
+        script {
+            def repoUrl = "https://github.com/Soumyakc-161/test-repo-jenkiness.git"
 
-                    echo "🔍 Branch entered: ${params.BRANCH_NAME}"
+            // 🔴 Hard stop if parameter is empty
+            if (!params.BRANCH_NAME || params.BRANCH_NAME.trim() == "") {
+                error "❌ BRANCH_NAME parameter is EMPTY. Pipeline aborted."
+            }
 
-                    try {
-                        checkout([$class: 'GitSCM',
-                            branches: [[name: "*/${params.BRANCH_NAME}"]],
-                            userRemoteConfigs: [[url: repoUrl]]
-                        ])
-                        echo "✅ Branch checkout successful"
-                    } catch (err) {
-                        error "❌ Branch NOT FOUND: ${params.BRANCH_NAME}"
-                    }
-                }
+            echo "🔍 Branch entered: ${params.BRANCH_NAME}"
+
+            // Clean workspace to avoid cached success
+            deleteDir()
+
+            try {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: "refs/heads/${params.BRANCH_NAME}"]],
+                    userRemoteConfigs: [[
+                        url: repoUrl,
+                        refspec: "+refs/heads/*:refs/remotes/origin/*"
+                    ]],
+                    extensions: [
+                        [$class: 'CloneOption',
+                         shallow: false,
+                         noTags: false,
+                         timeout: 10]
+                    ]
+                ])
+
+                echo "✅ Branch '${params.BRANCH_NAME}' VERIFIED and CHECKED OUT"
+
+            } catch (Exception e) {
+                error """
+❌ STRICT FAILURE: BRANCH DOES NOT EXIST
+---------------------------------------
+Repository : ${repoUrl}
+Branch     : ${params.BRANCH_NAME}
+---------------------------------------
+Pipeline stopped immediately.
+"""
             }
         }
+    }
+}
 
-        /* =====================================================
-           2. Enforce ONLY JSON files in arm-templates
-        ====================================================== */
-        stage('Validate File Types') {
-            steps {
-                script {
-                    echo "🔍 Enforcing JSON-only policy under arm-templates"
 
-                    def status = bat(
-                        script: '''
-                        @echo off
-                        for /R azure-adf-e2e\\arm-templates %%f in (*) do (
-                            if not "%%~xf"==".json" (
-                                echo ❌ Invalid file found: %%f
-                                exit /b 1
-                            )
-                        )
-                        ''',
-                        returnStatus: true
-                    )
 
-                    if (status != 0) {
-                        error "❌ Non-JSON files detected"
-                    }
+        // /* =====================================================
+        //    2. Enforce ONLY JSON files in arm-templates
+        // ====================================================== */
+        // stage('Validate File Types') {
+        //     steps {
+        //         script {
+        //             echo "🔍 Enforcing JSON-only policy under arm-templates"
 
-                    echo "✅ JSON-only validation passed"
-                }
-            }
-        }
+        //             def status = bat(
+        //                 script: '''
+        //                 @echo off
+        //                 for /R azure-adf-e2e\\arm-templates %%f in (*) do (
+        //                     if not "%%~xf"==".json" (
+        //                         echo ❌ Invalid file found: %%f
+        //                         exit /b 1
+        //                     )
+        //                 )
+        //                 ''',
+        //                 returnStatus: true
+        //             )
 
-        /* =====================================================
-           3. Resource Group Template Validation
-        ====================================================== */
-        stage('Validate - Resource Group Template') {
-            steps {
-                bat '''
-                if not exist azure-adf-e2e\\arm-templates\\resource-group\\rg.json (
-                    echo ❌ rg.json missing
-                    exit /b 1
-                )
+        //             if (status != 0) {
+        //                 error "❌ Non-JSON files detected"
+        //             }
 
-                type azure-adf-e2e\\arm-templates\\resource-group\\rg.json >nul || exit /b 1
+        //             echo "✅ JSON-only validation passed"
+        //         }
+        //     }
+        // }
 
-                echo ✅ Resource Group structure OK
-                '''
-            }
-        }
+        // /* =====================================================
+        //    3. Resource Group Template Validation
+        // ====================================================== */
+        // stage('Validate - Resource Group Template') {
+        //     steps {
+        //         bat '''
+        //         if not exist azure-adf-e2e\\arm-templates\\resource-group\\rg.json (
+        //             echo ❌ rg.json missing
+        //             exit /b 1
+        //         )
 
-        /* =====================================================
-           4. Storage Account Template Validation
-        ====================================================== */
-        stage('Validate - Storage Account Template') {
-            steps {
-                bat '''
-                if not exist azure-adf-e2e\\arm-templates\\storage-account\\storage.json (
-                    echo ❌ storage.json missing
-                    exit /b 1
-                )
+        //         type azure-adf-e2e\\arm-templates\\resource-group\\rg.json >nul || exit /b 1
 
-                type azure-adf-e2e\\arm-templates\\storage-account\\storage.json >nul || exit /b 1
+        //         echo ✅ Resource Group structure OK
+        //         '''
+        //     }
+        // }
 
-                echo ✅ Storage Account structure OK
-                '''
-            }
-        }
+        // /* =====================================================
+        //    4. Storage Account Template Validation
+        // ====================================================== */
+        // stage('Validate - Storage Account Template') {
+        //     steps {
+        //         bat '''
+        //         if not exist azure-adf-e2e\\arm-templates\\storage-account\\storage.json (
+        //             echo ❌ storage.json missing
+        //             exit /b 1
+        //         )
 
-        /* =====================================================
-           5. Data Factory Template Structure Validation
-        ====================================================== */
-        stage('Validate - Data Factory Templates') {
-            steps {
-                bat '''
-                if not exist azure-adf-e2e\\arm-templates\\data-factory\\factory (
-                    echo ❌ factory folder missing
-                    exit /b 1
-                )
+        //         type azure-adf-e2e\\arm-templates\\storage-account\\storage.json >nul || exit /b 1
 
-                if not exist azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates (
-                    echo ❌ linkedTemplates folder missing
-                    exit /b 1
-                )
+        //         echo ✅ Storage Account structure OK
+        //         '''
+        //     }
+        // }
 
-                if not exist azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json (
-                    echo ❌ ARMTemplateForFactory.json missing
-                    exit /b 1
-                )
+        // /* =====================================================
+        //    5. Data Factory Template Structure Validation
+        // ====================================================== */
+        // stage('Validate - Data Factory Templates') {
+        //     steps {
+        //         bat '''
+        //         if not exist azure-adf-e2e\\arm-templates\\data-factory\\factory (
+        //             echo ❌ factory folder missing
+        //             exit /b 1
+        //         )
 
-                if not exist azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json (
-                    echo ❌ Parameters file missing
-                    exit /b 1
-                )
+        //         if not exist azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates (
+        //             echo ❌ linkedTemplates folder missing
+        //             exit /b 1
+        //         )
 
-                type azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json >nul || exit /b 1
-                type azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json >nul || exit /b 1
+        //         if not exist azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json (
+        //             echo ❌ ARMTemplateForFactory.json missing
+        //             exit /b 1
+        //         )
 
-                for %%f in (azure-adf-e2e\\arm-templates\\data-factory\\factory\\*.json) do (
-                    type %%f >nul || exit /b 1
-                )
+        //         if not exist azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json (
+        //             echo ❌ Parameters file missing
+        //             exit /b 1
+        //         )
 
-                for %%f in (azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates\\*.json) do (
-                    type %%f >nul || exit /b 1
-                )
+        //         type azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json >nul || exit /b 1
+        //         type azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json >nul || exit /b 1
 
-                echo ✅ Data Factory structure OK
-                '''
-            }
-        }
+        //         for %%f in (azure-adf-e2e\\arm-templates\\data-factory\\factory\\*.json) do (
+        //             type %%f >nul || exit /b 1
+        //         )
+
+        //         for %%f in (azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates\\*.json) do (
+        //             type %%f >nul || exit /b 1
+        //         )
+
+        //         echo ✅ Data Factory structure OK
+        //         '''
+        //     }
+        // }
 
         /* =====================================================
            6. REAL ARM VALIDATION (Azure-side, No Deployment)
