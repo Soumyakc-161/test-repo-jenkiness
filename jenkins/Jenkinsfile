@@ -7,205 +7,159 @@ pipeline {
 
     stages {
 
+        /* =====================================================
+           1. Branch Validation & Checkout (Fail Fast)
+        ====================================================== */
         stage('Validate Branch & Checkout') {
             steps {
                 script {
                     def repoUrl = "https://github.com/Soumyakc-161/test-repo-jenkiness.git"
 
-                    echo "Branch entered: ${params.BRANCH_NAME}"
+                    echo "🔍 Branch entered: ${params.BRANCH_NAME}"
 
                     try {
                         checkout([$class: 'GitSCM',
                             branches: [[name: "*/${params.BRANCH_NAME}"]],
                             userRemoteConfigs: [[url: repoUrl]]
                         ])
-
-                        echo "✅ Branch is correct. Checkout successful!"
-                    }
-                    catch (err) {
-                        error "❌ Branch is WRONG or not found: ${params.BRANCH_NAME}"
+                        echo "✅ Branch checkout successful"
+                    } catch (err) {
+                        error "❌ Branch NOT FOUND: ${params.BRANCH_NAME}"
                     }
                 }
             }
         }
 
-       stage('Validate Files') {
-    steps {
-        script {
-            echo "🔍 Validating ONLY .json files under azure-adf-e2e/arm-templates (fail fast)..."
+        /* =====================================================
+           2. Enforce ONLY JSON files in arm-templates
+        ====================================================== */
+        stage('Validate File Types') {
+            steps {
+                script {
+                    echo "🔍 Enforcing JSON-only policy under arm-templates"
 
-            def status = bat(
-                script: '''
-                @echo off
-                for /R azure-adf-e2e\\arm-templates %%f in (*) do (
-                    if not exist "%%f\\" (
-                        if /I not "%%~xf"==".json" (
-                            echo ❌ Invalid file found: %%f
-                            exit /b 1
+                    def status = bat(
+                        script: '''
+                        @echo off
+                        for /R azure-adf-e2e\\arm-templates %%f in (*) do (
+                            if not "%%~xf"==".json" (
+                                echo ❌ Invalid file found: %%f
+                                exit /b 1
+                            )
                         )
+                        ''',
+                        returnStatus: true
                     )
-                )
-                ''',
-                returnStatus: true
-            )
 
-            if (status != 0) {
-                error "❌ File validation failed. Only .json files are allowed under azure-adf-e2e/arm-templates"
+                    if (status != 0) {
+                        error "❌ Non-JSON files detected"
+                    }
+
+                    echo "✅ JSON-only validation passed"
+                }
             }
-
-            echo "✅ Validation passed: only JSON files present"
         }
-    }
-}
 
+        /* =====================================================
+           3. Resource Group Template Validation
+        ====================================================== */
         stage('Validate - Resource Group Template') {
-    steps {
-        echo "🔍 CI: Validating Resource Group ARM template structure"
+            steps {
+                bat '''
+                if not exist azure-adf-e2e\\arm-templates\\resource-group\\rg.json (
+                    echo ❌ rg.json missing
+                    exit /b 1
+                )
 
-        bat '''
-        echo Checking resource-group folder...
-        if not exist azure-adf-e2e\\arm-templates\\resource-group (
-            echo ❌ ERROR: resource-group folder is missing
-            exit /b 1
-        )
+                type azure-adf-e2e\\arm-templates\\resource-group\\rg.json >nul || exit /b 1
 
-        echo Checking rg.json file...
-        if not exist azure-adf-e2e\\arm-templates\\resource-group\\rg.json (
-            echo ❌ ERROR: rg.json file is missing
-            exit /b 1
-        )
+                echo ✅ Resource Group structure OK
+                '''
+            }
+        }
 
-        REM Basic JSON readability check
-        type azure-adf-e2e\\arm-templates\\resource-group\\rg.json >nul || exit /b 1
-
-        echo ✅ Resource Group ARM template validation passed
-        '''
-    }
-}
+        /* =====================================================
+           4. Storage Account Template Validation
+        ====================================================== */
         stage('Validate - Storage Account Template') {
-    steps {
-        bat '''
-        echo ===============================
-        echo CI: Validating Storage Account
-        echo ===============================
+            steps {
+                bat '''
+                if not exist azure-adf-e2e\\arm-templates\\storage-account\\storage.json (
+                    echo ❌ storage.json missing
+                    exit /b 1
+                )
 
-        if not exist azure-adf-e2e\\arm-templates\\storage-account (
-            echo ❌ storage-account folder missing
-            exit /b 1
-        )
+                type azure-adf-e2e\\arm-templates\\storage-account\\storage.json >nul || exit /b 1
 
-        if not exist azure-adf-e2e\\arm-templates\\storage-account\\storage.json (
-            echo ❌ storage.json missing
-            exit /b 1
-        )
+                echo ✅ Storage Account structure OK
+                '''
+            }
+        }
 
-        REM Basic JSON readability check
-        type azure-adf-e2e\\arm-templates\\storage-account\\storage.json >nul || exit /b 1
-
-        echo ✅ Storage Account validation PASSED
-        '''
-    }
-}
-
+        /* =====================================================
+           5. Data Factory Template Structure Validation
+        ====================================================== */
         stage('Validate - Data Factory Templates') {
-    steps {
-        bat '''
-        echo ===============================
-        echo CI: Validating Data Factory files
-        echo ===============================
+            steps {
+                bat '''
+                if not exist azure-adf-e2e\\arm-templates\\data-factory\\factory (
+                    echo ❌ factory folder missing
+                    exit /b 1
+                )
 
-        REM 1. data-factory folder must exist
-        if not exist azure-adf-e2e\\arm-templates\\data-factory (
-            echo ❌ data-factory folder missing
-            exit /b 1
-        )
+                if not exist azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates (
+                    echo ❌ linkedTemplates folder missing
+                    exit /b 1
+                )
 
-        REM 2. factory folder must exist
-        if not exist azure-adf-e2e\\arm-templates\\data-factory\\factory (
-            echo ❌ factory folder missing
-            exit /b 1
-        )
+                if not exist azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json (
+                    echo ❌ ARMTemplateForFactory.json missing
+                    exit /b 1
+                )
 
-        REM 3. linkedTemplates folder must exist
-        if not exist azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates (
-            echo ❌ linkedTemplates folder missing
-            exit /b 1
-        )
+                if not exist azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json (
+                    echo ❌ Parameters file missing
+                    exit /b 1
+                )
 
-        REM 4. Main ARM template must exist
-        if not exist azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json (
-            echo ❌ ARMTemplateForFactory.json missing
-            exit /b 1
-        )
+                type azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json >nul || exit /b 1
+                type azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json >nul || exit /b 1
 
-        REM 5. Parameters file must exist
-        if not exist azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json (
-            echo ❌ ARMTemplateParametersForFactory.json missing
-            exit /b 1
-        )
+                for %%f in (azure-adf-e2e\\arm-templates\\data-factory\\factory\\*.json) do (
+                    type %%f >nul || exit /b 1
+                )
 
-        REM 6. Validate JSON readability (basic syntax check)
-        type azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json >nul || exit /b 1
-        type azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json >nul || exit /b 1
+                for %%f in (azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates\\*.json) do (
+                    type %%f >nul || exit /b 1
+                )
 
-        REM 7. Validate all linked templates JSON
-        for %%f in (azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates\\*.json) do (
-            type %%f >nul || exit /b 1
-        )
+                echo ✅ Data Factory structure OK
+                '''
+            }
+        }
 
-        REM 8. Validate all factory JSON
-        for %%f in (azure-adf-e2e\\arm-templates\\data-factory\\factory\\*.json) do (
-            type %%f >nul || exit /b 1
-        )
+        /* =====================================================
+           6. REAL ARM VALIDATION (Azure-side, No Deployment)
+        ====================================================== */
+        stage('ARM Validate - Data Factory') {
+            steps {
+                echo "🔐 Performing REAL ARM validation (no deployment)"
 
-        echo ✅ CI Data Factory validation PASSED
-        '''
-    }
-}
+                bat '''
+                az deployment group validate ^
+                  --resource-group rg-validation ^
+                  --template-file azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json ^
+                  --parameters azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json
+                '''
+            }
+        }
 
-//         stage('Validate - Storage Account Template') {
-//     steps {
-//         bat '''
-//         echo ===============================
-//         echo CI: Validating Storage Account
-//         echo ===============================
-
-//         if not exist azure-adf-e2e\\arm-templates\\storage-account (
-//             echo ❌ storage-account folder missing
-//             exit /b 1
-//         )
-
-//         if not exist azure-adf-e2e\\arm-templates\\storage-account\\storage.json (
-//             echo ❌ storage.json missing
-//             exit /b 1
-//         )
-
-//         REM Basic JSON readability check
-//         type azure-adf-e2e\\arm-templates\\storage-account\\storage.json >nul || exit /b 1
-
-//         echo ✅ Storage Account validation PASSED
-//         '''
-//     }
-// }
-
-
-//         stage('ARM What-If - Data Factory') {
-//     steps {
-//         echo "🔍 Previewing Azure changes using ARM What-If..."
-
-//         sh """
-//         az deployment group what-if \
-//           --resource-group rg-validation \
-//           --template-file azure-adf-e2e/arm-templates/data-factory/ARMTemplateForFactory.json \
-//           --parameters azure-adf-e2e/arm-templates/data-factory/ARMTemplateParametersForFactory.json
-//         """
-//     }
-// }
-
-
+        /* =====================================================
+           7. Publish ARM Templates as Artifact
+        ====================================================== */
         stage('Publish ARM Artifact') {
             steps {
-                echo " Publishing ARM templates as artifact..."
+                echo "📦 Publishing ARM templates as CI artifact"
 
                 archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
                                  fingerprint: true
