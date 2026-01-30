@@ -138,9 +138,9 @@ pipeline {
             }
         }
 
-        // /* =====================================================
-        //    6. REAL ARM VALIDATION (Azure-side, No Deployment)
-        // ====================================================== */
+        /* =====================================================
+           6. REAL ARM VALIDATION (Azure-side, No Deployment)
+        ====================================================== */
         // stage('ARM Validate - Data Factory') {
         //     steps {
         //         echo "🔐 Performing REAL ARM validation (no deployment)"
@@ -154,16 +154,16 @@ pipeline {
         //     }
         // }
 
-        /* =====================================================
-           7. Publish ARM Templates as Artifact
-        ====================================================== */
-        stage('Publish ARM Artifact') {
-            steps {
-                echo "📦 Publishing ARM templates as CI artifact"
+        // /* =====================================================
+        //    7. Publish ARM Templates as Artifact
+        // ====================================================== */
+        // stage('Publish ARM Artifact') {
+        //     steps {
+        //         echo "📦 Publishing ARM templates as CI artifact"
 
-                archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
-                                 fingerprint: true
-            }
-        }
+        //         archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
+        //                          fingerprint: true
+        //     }
+        // }
     }
 }
