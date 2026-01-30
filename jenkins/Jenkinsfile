@@ -30,33 +30,35 @@ pipeline {
         }
 
         stage('Validate Files') {
-            steps {
-                script {
-                    echo "✅ Validating allowed files..."
+    steps {
+        script {
+            echo "✅ Validating allowed files..."
 
-                    try {
-                        def invalidFiles = sh(
-                            script: """
-                            find . -type f \
-                            ! -name '*.json' \
-                            ! -name 'Jenkinsfile' \
-                            ! -path './.git/*'
-                            """,
-                            returnStdout: true
-                        ).trim()
+            def invalidFiles = sh(
+                script: """
+                find . -type f \
+                ! -name '*.json' \
+                ! -name 'Jenkinsfile' \
+                ! -path './.git/*'
+                """,
+                returnStdout: true
+            ).trim()
 
-                        if (invalidFiles) {
-                            error "❌ Invalid files found (only .json + Jenkinsfile allowed):\n${invalidFiles}"
-                        }
+            if (invalidFiles) {
+                error """
+❌ Invalid files found!
+Only .json files and Jenkinsfile are allowed.
 
-                        echo "✅ File validation passed (Only .json + Jenkinsfile)"
-                    }
-                    catch (err) {
-                        echo "❌ Validate Files failed, but continuing pipeline"
-                    }
-                }
+Invalid files:
+${invalidFiles}
+"""
             }
+
+            echo "✅ File validation passed (Only .json + Jenkinsfile)"
         }
+    }
+}
+}
 
         stage('Validate - Resource Group Template') {
     steps {
