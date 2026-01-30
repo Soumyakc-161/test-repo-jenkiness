@@ -29,16 +29,20 @@ pipeline {
             }
         }
 
-        stage('Validate Files') {
+       stage('Validate Files') {
     steps {
         script {
             echo "✅ Validating allowed files..."
 
             def invalidFiles = bat(
                 script: '''
+                @echo off
                 for /R %%f in (*) do (
-                  echo %%~nxf | findstr /I /V ".json Jenkinsfile" >nul
-                  if not errorlevel 1 echo %%f
+                  if not "%%~nxf"=="Jenkinsfile" (
+                    echo %%~xf | findstr /I ".json" >nul || (
+                      echo %%f
+                    )
+                  )
                 )
                 ''',
                 returnStdout: true
@@ -58,7 +62,6 @@ ${invalidFiles}
         }
     }
 }
-
 
         stage('Validate - Resource Group Template') {
     steps {
