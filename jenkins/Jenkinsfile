@@ -32,33 +32,33 @@ pipeline {
        stage('Validate Files') {
     steps {
         script {
-            echo "✅ Validating allowed files..."
+            echo "🚨 Strictly validating ONLY .json files (no folders allowed)..."
 
-            def invalidFiles = bat(
+            def invalidEntries = bat(
                 script: '''
                 @echo off
-                for /R %%f in (*) do (
-                  if not "%%~nxf"=="Jenkinsfile" (
-                    echo %%~xf | findstr /I ".json" >nul || (
-                      echo %%f
+                for %%f in (azure-adf-e2e\\arm-templates\\data-factory\\*) do (
+                    if exist "%%f\\" (
+                        echo Directory found: %%f
+                    ) else (
+                        echo %%~xf | findstr /I ".json" >nul || echo Invalid file: %%f
                     )
-                  )
                 )
                 ''',
                 returnStdout: true
             ).trim()
 
-            if (invalidFiles) {
+            if (invalidEntries) {
                 error """
-❌ Invalid files found!
-Only .json files and Jenkinsfile are allowed.
+❌ Validation failed!
+Only .json files are allowed in arm-templates/data-factory
 
-Invalid files:
-${invalidFiles}
+Invalid entries:
+${invalidEntries}
 """
             }
 
-            echo "✅ File validation passed (Only .json + Jenkinsfile)"
+            echo "✅ Validation passed: only .json files present"
         }
     }
 }
