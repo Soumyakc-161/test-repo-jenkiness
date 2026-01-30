@@ -208,13 +208,13 @@ ${invalidEntries}
 // }
 
 
-        // stage('Publish ARM Artifact') {
-        //     steps {
-        //         echo " Publishing ARM templates as artifact..."
+        stage('Publish ARM Artifact') {
+            steps {
+                echo " Publishing ARM templates as artifact..."
 
-        //         archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
-        //                          fingerprint: true
-        //     }
-        // }
+                archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
+                                 fingerprint: true
+            }
+        }
     }
 }
