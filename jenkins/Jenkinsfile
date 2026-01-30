@@ -34,13 +34,13 @@ pipeline {
         script {
             echo "✅ Validating allowed files..."
 
-            def invalidFiles = sh(
-                script: """
-                find . -type f \
-                ! -name '*.json' \
-                ! -name 'Jenkinsfile' \
-                ! -path './.git/*'
-                """,
+            def invalidFiles = bat(
+                script: '''
+                for /R %%f in (*) do (
+                  echo %%~nxf | findstr /I /V ".json Jenkinsfile" >nul
+                  if not errorlevel 1 echo %%f
+                )
+                ''',
                 returnStdout: true
             ).trim()
 
@@ -58,7 +58,7 @@ ${invalidFiles}
         }
     }
 }
-}
+
 
         stage('Validate - Resource Group Template') {
     steps {
