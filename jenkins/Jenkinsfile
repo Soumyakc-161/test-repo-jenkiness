@@ -138,32 +138,32 @@ pipeline {
             }
         }
 
-        /* =====================================================
-           6. REAL ARM VALIDATION (Azure-side, No Deployment)
-        ====================================================== */
-        stage('ARM Validate - Data Factory') {
-            steps {
-                echo "🔐 Performing REAL ARM validation (no deployment)"
-
-                bat '''
-                az deployment group validate ^
-                  --resource-group rg-validation ^
-                  --template-file azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json ^
-                  --parameters azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json
-                '''
-            }
-        }
-
         // /* =====================================================
-        //    7. Publish ARM Templates as Artifact
+        //    6. REAL ARM VALIDATION (Azure-side, No Deployment)
         // ====================================================== */
-        // stage('Publish ARM Artifact') {
+        // stage('ARM Validate - Data Factory') {
         //     steps {
-        //         echo "📦 Publishing ARM templates as CI artifact"
+        //         echo "🔐 Performing REAL ARM validation (no deployment)"
 
-        //         archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
-        //                          fingerprint: true
+        //         bat '''
+        //         az deployment group validate ^
+        //           --resource-group rg-validation ^
+        //           --template-file azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json ^
+        //           --parameters azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json
+        //         '''
         //     }
         // }
+
+        /* =====================================================
+           7. Publish ARM Templates as Artifact
+        ====================================================== */
+        stage('Publish ARM Artifact') {
+            steps {
+                echo "📦 Publishing ARM templates as CI artifact"
+
+                archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
+                                 fingerprint: true
+            }
+        }
     }
 }
