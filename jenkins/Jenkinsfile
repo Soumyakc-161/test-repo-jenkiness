@@ -118,8 +118,8 @@ Pipeline stopped immediately.
         echo } >> %PSFILE%
 
         echo foreach ($k in $expected.Keys){ >> %PSFILE%
-        echo if(-not $json.parameters.$k){Write-Host "Missing $k";exit 1} >> %PSFILE%
-        echo if($json.parameters.$k.defaultValue -ne $expected[$k]){Write-Host "Wrong value for $k";exit 1} >> %PSFILE%
+        echo if(-not $json.parameters.$k){Write-Host "Missing parameter: $k"; exit 1} >> %PSFILE%
+        echo if($json.parameters.$k.defaultValue -ne $expected[$k]){Write-Host "Wrong value for $k"; exit 1} >> %PSFILE%
         echo } >> %PSFILE%
 
         echo Write-Host 'RG Basic validation PASSED' >> %PSFILE%
@@ -157,8 +157,7 @@ stage('Validate RG - Resources') {
         echo ) >> %PSFILE%
 
         echo foreach ($t in $types){ >> %PSFILE%
-        echo if(-not ($json.resources ^| Where-Object {$_.type -eq $t})){ >> %PSFILE%
-        echo Write-Host "Missing resource type: $t";exit 1} >> %PSFILE%
+        echo if(-not ($json.resources ^| Where-Object {$_.type -eq $t})){Write-Host "Missing resource: $t"; exit 1} >> %PSFILE%
         echo } >> %PSFILE%
 
         echo Write-Host 'RG Resource validation PASSED' >> %PSFILE%
@@ -167,6 +166,7 @@ stage('Validate RG - Resources') {
         '''
     }
 }
+
 
 
         /* =====================================================
