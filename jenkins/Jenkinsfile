@@ -110,62 +110,73 @@ Pipeline stopped immediately.
         /* =====================================================
            4. Storage Account Template Validation
         ====================================================== */
-        stage('Validate - Storage Account Template') {
+       stage('Validate - Storage Account Template') {
     steps {
         bat '''
-        echo 🔍 Validating Storage Account ARM Template...
+        echo Validating Storage Account ARM Template (BAT only)...
 
         set FILE=azure-adf-e2e\\arm-templates\\storage-account\\storage.json
-        set PSFILE=validate-storage.ps1
 
         REM ===== 1. File exists =====
         if not exist %FILE% (
-            echo ❌ storage.json missing at expected path
+            echo ERROR: storage.json missing
             exit /b 1
         )
 
-        REM ===== Create PowerShell validation script =====
-        echo $ErrorActionPreference = 'Stop' > %PSFILE%
-        echo $expectedName = 'cftproject' >> %PSFILE%
-        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
+        REM ===== 2. File readable =====
+        type %FILE% >nul || (
+            echo ERROR: storage.json not readable
+            exit /b 1
+        )
 
-        REM ---- Required parameter ----
-        echo if (-not $json.parameters.storageAccounts_cftproject_name) { >> %PSFILE%
-        echo     Write-Host '❌ Missing parameter: storageAccounts_cftproject_name' >> %PSFILE%
-        echo     exit 1 >> %PSFILE%
-        echo } >> %PSFILE%
+        REM ===== 3. Required parameter exists =====
+        findstr /C:"storageAccounts_cftproject_name" %FILE% >nul || (
+            echo ERROR: Missing parameter storageAccounts_cftproject_name
+            exit /b 1
+        )
 
-        REM ---- Strict storage account name ----
-        echo $storageName = $json.parameters.storageAccounts_cftproject_name.defaultValue >> %PSFILE%
-        echo if ($storageName -ne $expectedName) { >> %PSFILE%
-        echo     Write-Host \"❌ Storage account name must be '$expectedName'. Found: $storageName\" >> %PSFILE%
-        echo     exit 1 >> %PSFILE%
-        echo } >> %PSFILE%
+        REM ===== 4. Strict storage account name =====
+        findstr /C:"\\"defaultValue\\": \\"cftproject\\"" %FILE% >nul || (
+            echo ERROR: Storage account name must be cftproject
+            exit /b 1
+        )
 
-        REM ---- Required resource types (from YOUR template) ----
-        echo $requiredTypes = @( >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts', >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts/blobServices', >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts/fileServices', >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts/queueServices', >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts/tableServices', >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts/blobServices/containers' >> %PSFILE%
-        echo ) >> %PSFILE%
+        REM ===== 5. Required resource types =====
+        findstr /C:"Microsoft.Storage/storageAccounts\"" %FILE% >nul || (
+            echo ERROR: Missing storageAccounts resource
+            exit /b 1
+        )
 
-        echo foreach ($type in $requiredTypes) { >> %PSFILE%
-        echo     if (-not ($json.resources ^| Where-Object { $_.type -eq $type })) { >> %PSFILE%
-        echo         Write-Host \"❌ Missing resource type: $type\" >> %PSFILE%
-        echo         exit 1 >> %PSFILE%
-        echo     } >> %PSFILE%
-        echo } >> %PSFILE%
+        findstr /C:"Microsoft.Storage/storageAccounts/blobServices\"" %FILE% >nul || (
+            echo ERROR: Missing blobServices resource
+            exit /b 1
+        )
 
-        echo Write-Host '✅ Storage Account ARM template validation PASSED' >> %PSFILE%
+        findstr /C:"Microsoft.Storage/storageAccounts/fileServices\"" %FILE% >nul || (
+            echo ERROR: Missing fileServices resource
+            exit /b 1
+        )
 
-        REM ===== Execute validation =====
-        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
+        findstr /C:"Microsoft.Storage/storageAccounts/queueServices\"" %FILE% >nul || (
+            echo ERROR: Missing queueServices resource
+            exit /b 1
+        )
+
+        findstr /C:"Microsoft.Storage/storageAccounts/tableServices\"" %FILE% >nul || (
+            echo ERROR: Missing tableServices resource
+            exit /b 1
+        )
+
+        findstr /C:"Microsoft.Storage/storageAccounts/blobServices/containers\"" %FILE% >nul || (
+            echo ERROR: Missing blob container resources
+            exit /b 1
+        )
+
+        echo SUCCESS: Storage Account ARM template validation PASSED
         '''
     }
 }
+
 
         /* =====================================================
            5. Data Factory Template Structure Validation
