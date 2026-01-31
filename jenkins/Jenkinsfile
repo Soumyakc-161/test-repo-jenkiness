@@ -115,12 +115,12 @@ Pipeline stopped immediately.
         bat '''
         echo 🔍 Validating Storage Account ARM Template...
 
-        set FILE=storage.json
+        set FILE=azure-adf-e2e\\arm-templates\\storage-account\\storage.json
         set PSFILE=validate-storage.ps1
 
         REM ===== 1. File exists =====
         if not exist %FILE% (
-            echo ❌ storage.json missing
+            echo ❌ storage.json missing at expected path
             exit /b 1
         )
 
@@ -129,17 +129,20 @@ Pipeline stopped immediately.
         echo $expectedName = 'cftproject' >> %PSFILE%
         echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
 
+        REM ---- Required parameter ----
         echo if (-not $json.parameters.storageAccounts_cftproject_name) { >> %PSFILE%
         echo     Write-Host '❌ Missing parameter: storageAccounts_cftproject_name' >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo } >> %PSFILE%
 
+        REM ---- Strict storage account name ----
         echo $storageName = $json.parameters.storageAccounts_cftproject_name.defaultValue >> %PSFILE%
         echo if ($storageName -ne $expectedName) { >> %PSFILE%
         echo     Write-Host \"❌ Storage account name must be '$expectedName'. Found: $storageName\" >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo } >> %PSFILE%
 
+        REM ---- Required resource types (from YOUR template) ----
         echo $requiredTypes = @( >> %PSFILE%
         echo 'Microsoft.Storage/storageAccounts', >> %PSFILE%
         echo 'Microsoft.Storage/storageAccounts/blobServices', >> %PSFILE%
@@ -156,9 +159,9 @@ Pipeline stopped immediately.
         echo     } >> %PSFILE%
         echo } >> %PSFILE%
 
-        echo Write-Host '✅ Storage Account ARM template validation passed' >> %PSFILE%
+        echo Write-Host '✅ Storage Account ARM template validation PASSED' >> %PSFILE%
 
-        REM ===== Execute PowerShell script =====
+        REM ===== Execute validation =====
         powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
