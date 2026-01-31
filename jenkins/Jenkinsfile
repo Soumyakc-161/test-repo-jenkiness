@@ -92,20 +92,82 @@ Pipeline stopped immediately.
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
-        stage('Validate - Resource Group Template') {
-            steps {
-                bat '''
-                if not exist azure-adf-e2e\\arm-templates\\resource-group\\rg.json (
-                    echo ❌ rg.json missing
-                    exit /b 1
-                )
+       stage('Validate RG - Basics') {
+    steps {
+        bat '''
+        echo Validating RG Basics...
 
-                type azure-adf-e2e\\arm-templates\\resource-group\\rg.json >nul || exit /b 1
+        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
+        set PSFILE=rg-basic.ps1
 
-                echo ✅ Resource Group structure OK
-                '''
-            }
-        }
+        if not exist %FILE% (
+            echo rg.json missing
+            exit /b 1
+        )
+
+        echo $ErrorActionPreference='Stop' > %PSFILE%
+        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
+
+        echo $expected=@{ >> %PSFILE%
+        echo 'storageAccounts_cftproject_name'='cftproject'; >> %PSFILE%
+        echo 'workspaces_cft_databricks_name'='cft_databricks'; >> %PSFILE%
+        echo 'virtualNetworks_CFT_Virtual_Network_name'='CFT_Virtual_Network'; >> %PSFILE%
+        echo 'accessConnectors_adb_access_connector_name'='adb-access-connector'; >> %PSFILE%
+        echo 'networkSecurityGroups_databricksnsgmuuuizl5pkmwk_name'='databricksnsgmuuuizl5pkmwk'; >> %PSFILE%
+        echo 'userAssignedIdentities_databricks_uami_autoloader_name'='databricks-uami-autoloader' >> %PSFILE%
+        echo } >> %PSFILE%
+
+        echo foreach ($k in $expected.Keys){ >> %PSFILE%
+        echo if(-not $json.parameters.$k){Write-Host "Missing $k";exit 1} >> %PSFILE%
+        echo if($json.parameters.$k.defaultValue -ne $expected[$k]){Write-Host "Wrong value for $k";exit 1} >> %PSFILE%
+        echo } >> %PSFILE%
+
+        echo Write-Host 'RG Basic validation PASSED' >> %PSFILE%
+
+        powershell -ExecutionPolicy Bypass -File %PSFILE%
+        '''
+    }
+}
+
+stage('Validate RG - Resources') {
+    steps {
+        bat '''
+        echo Validating RG Resources...
+
+        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
+        set PSFILE=rg-res.ps1
+
+        echo $ErrorActionPreference='Stop' > %PSFILE%
+        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
+
+        echo $types=@( >> %PSFILE%
+        echo 'Microsoft.Databricks/accessConnectors', >> %PSFILE%
+        echo 'Microsoft.ManagedIdentity/userAssignedIdentities', >> %PSFILE%
+        echo 'Microsoft.Network/networkSecurityGroups', >> %PSFILE%
+        echo 'Microsoft.Network/networkSecurityGroups/securityRules', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts', >> %PSFILE%
+        echo 'Microsoft.Databricks/workspaces', >> %PSFILE%
+        echo 'Microsoft.Network/virtualNetworks', >> %PSFILE%
+        echo 'Microsoft.Network/virtualNetworks/subnets', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/blobServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/fileServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/queueServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/tableServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/blobServices/containers' >> %PSFILE%
+        echo ) >> %PSFILE%
+
+        echo foreach ($t in $types){ >> %PSFILE%
+        echo if(-not ($json.resources ^| Where-Object {$_.type -eq $t})){ >> %PSFILE%
+        echo Write-Host "Missing resource type: $t";exit 1} >> %PSFILE%
+        echo } >> %PSFILE%
+
+        echo Write-Host 'RG Resource validation PASSED' >> %PSFILE%
+
+        powershell -ExecutionPolicy Bypass -File %PSFILE%
+        '''
+    }
+}
+
 
         /* =====================================================
            4. Storage Account Template Validation
@@ -150,7 +212,7 @@ Pipeline stopped immediately.
     }
 }
 
-stage('Validate - Storage Account Resources') {
+stage('Validate - Storage Account Resourcess') {
     steps {
         bat '''
         echo 🔍 Validating Storage Account Template - Resources...
