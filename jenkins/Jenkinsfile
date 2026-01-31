@@ -59,113 +59,113 @@ Pipeline stopped immediately.
 
 
 
-        // /* =====================================================
-        //    2. Enforce ONLY JSON files in arm-templates
-        // ====================================================== */
-        // stage('Validate File Types') {
-        //     steps {
-        //         script {
-        //             echo "🔍 Enforcing JSON-only policy under arm-templates"
+        /* =====================================================
+           2. Enforce ONLY JSON files in arm-templates
+        ====================================================== */
+        stage('Validate File Types') {
+            steps {
+                script {
+                    echo "🔍 Enforcing JSON-only policy under arm-templates"
 
-        //             def status = bat(
-        //                 script: '''
-        //                 @echo off
-        //                 for /R azure-adf-e2e\\arm-templates %%f in (*) do (
-        //                     if not "%%~xf"==".json" (
-        //                         echo ❌ Invalid file found: %%f
-        //                         exit /b 1
-        //                     )
-        //                 )
-        //                 ''',
-        //                 returnStatus: true
-        //             )
+                    def status = bat(
+                        script: '''
+                        @echo off
+                        for /R azure-adf-e2e\\arm-templates %%f in (*) do (
+                            if not "%%~xf"==".json" (
+                                echo ❌ Invalid file found: %%f
+                                exit /b 1
+                            )
+                        )
+                        ''',
+                        returnStatus: true
+                    )
 
-        //             if (status != 0) {
-        //                 error "❌ Non-JSON files detected"
-        //             }
+                    if (status != 0) {
+                        error "❌ Non-JSON files detected"
+                    }
 
-        //             echo "✅ JSON-only validation passed"
-        //         }
-        //     }
-        // }
+                    echo "✅ JSON-only validation passed"
+                }
+            }
+        }
 
-        // /* =====================================================
-        //    3. Resource Group Template Validation
-        // ====================================================== */
-        // stage('Validate - Resource Group Template') {
-        //     steps {
-        //         bat '''
-        //         if not exist azure-adf-e2e\\arm-templates\\resource-group\\rg.json (
-        //             echo ❌ rg.json missing
-        //             exit /b 1
-        //         )
+        /* =====================================================
+           3. Resource Group Template Validation
+        ====================================================== */
+        stage('Validate - Resource Group Template') {
+            steps {
+                bat '''
+                if not exist azure-adf-e2e\\arm-templates\\resource-group\\rg.json (
+                    echo ❌ rg.json missing
+                    exit /b 1
+                )
 
-        //         type azure-adf-e2e\\arm-templates\\resource-group\\rg.json >nul || exit /b 1
+                type azure-adf-e2e\\arm-templates\\resource-group\\rg.json >nul || exit /b 1
 
-        //         echo ✅ Resource Group structure OK
-        //         '''
-        //     }
-        // }
+                echo ✅ Resource Group structure OK
+                '''
+            }
+        }
 
-        // /* =====================================================
-        //    4. Storage Account Template Validation
-        // ====================================================== */
-        // stage('Validate - Storage Account Template') {
-        //     steps {
-        //         bat '''
-        //         if not exist azure-adf-e2e\\arm-templates\\storage-account\\storage.json (
-        //             echo ❌ storage.json missing
-        //             exit /b 1
-        //         )
+        /* =====================================================
+           4. Storage Account Template Validation
+        ====================================================== */
+        stage('Validate - Storage Account Template') {
+            steps {
+                bat '''
+                if not exist azure-adf-e2e\\arm-templates\\storage-account\\storage.json (
+                    echo ❌ storage.json missing
+                    exit /b 1
+                )
 
-        //         type azure-adf-e2e\\arm-templates\\storage-account\\storage.json >nul || exit /b 1
+                type azure-adf-e2e\\arm-templates\\storage-account\\storage.json >nul || exit /b 1
 
-        //         echo ✅ Storage Account structure OK
-        //         '''
-        //     }
-        // }
+                echo ✅ Storage Account structure OK
+                '''
+            }
+        }
 
-        // /* =====================================================
-        //    5. Data Factory Template Structure Validation
-        // ====================================================== */
-        // stage('Validate - Data Factory Templates') {
-        //     steps {
-        //         bat '''
-        //         if not exist azure-adf-e2e\\arm-templates\\data-factory\\factory (
-        //             echo ❌ factory folder missing
-        //             exit /b 1
-        //         )
+        /* =====================================================
+           5. Data Factory Template Structure Validation
+        ====================================================== */
+        stage('Validate - Data Factory Templates') {
+            steps {
+                bat '''
+                if not exist azure-adf-e2e\\arm-templates\\data-factory\\factory (
+                    echo ❌ factory folder missing
+                    exit /b 1
+                )
 
-        //         if not exist azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates (
-        //             echo ❌ linkedTemplates folder missing
-        //             exit /b 1
-        //         )
+                if not exist azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates (
+                    echo ❌ linkedTemplates folder missing
+                    exit /b 1
+                )
 
-        //         if not exist azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json (
-        //             echo ❌ ARMTemplateForFactory.json missing
-        //             exit /b 1
-        //         )
+                if not exist azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json (
+                    echo ❌ ARMTemplateForFactory.json missing
+                    exit /b 1
+                )
 
-        //         if not exist azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json (
-        //             echo ❌ Parameters file missing
-        //             exit /b 1
-        //         )
+                if not exist azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json (
+                    echo ❌ Parameters file missing
+                    exit /b 1
+                )
 
-        //         type azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json >nul || exit /b 1
-        //         type azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json >nul || exit /b 1
+                type azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json >nul || exit /b 1
+                type azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json >nul || exit /b 1
 
-        //         for %%f in (azure-adf-e2e\\arm-templates\\data-factory\\factory\\*.json) do (
-        //             type %%f >nul || exit /b 1
-        //         )
+                for %%f in (azure-adf-e2e\\arm-templates\\data-factory\\factory\\*.json) do (
+                    type %%f >nul || exit /b 1
+                )
 
-        //         for %%f in (azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates\\*.json) do (
-        //             type %%f >nul || exit /b 1
-        //         )
+                for %%f in (azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates\\*.json) do (
+                    type %%f >nul || exit /b 1
+                )
 
-        //         echo ✅ Data Factory structure OK
-        //         '''
-        //     }
-        // }
+                echo ✅ Data Factory structure OK
+                '''
+            }
+        }
 
         /* =====================================================
            6. REAL ARM VALIDATION (Azure-side, No Deployment)
@@ -183,16 +183,16 @@ Pipeline stopped immediately.
         //     }
         // }
 
-        // /* =====================================================
-        //    7. Publish ARM Templates as Artifact
-        // ====================================================== */
-        // stage('Publish ARM Artifact') {
-        //     steps {
-        //         echo "📦 Publishing ARM templates as CI artifact"
+        /* =====================================================
+           7. Publish ARM Templates as Artifact
+        ====================================================== */
+        stage('Publish ARM Artifact') {
+            steps {
+                echo "📦 Publishing ARM templates as CI artifact"
 
-        //         archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
-        //                          fingerprint: true
-        //     }
-        // }
+                archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
+                                 fingerprint: true
+            }
+        }
     }
 }
