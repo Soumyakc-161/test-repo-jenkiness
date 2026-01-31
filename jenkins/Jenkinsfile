@@ -117,31 +117,30 @@ Pipeline stopped immediately.
 
         set FILE=azure-adf-e2e\\arm-templates\\storage-account\\storage.json
 
-        REM ===== 1. File exists =====
+        REM ===== File exists =====
         if not exist %FILE% (
             echo ❌ storage.json missing
             exit /b 1
         )
 
-        REM ===== PowerShell validation =====
         powershell -NoProfile -Command ^
         "$ErrorActionPreference = 'Stop'; ^
         $expectedName = 'cftproject'; ^
         $json = Get-Content '%FILE%' | ConvertFrom-Json; ^
 
-        # Required parameter
+        # ----- Required parameter -----
         if (-not $json.parameters.storageAccounts_cftproject_name) { ^
             Write-Host '❌ Missing parameter: storageAccounts_cftproject_name'; exit 1 ^
         } ^
 
         $storageName = $json.parameters.storageAccounts_cftproject_name.defaultValue; ^
 
-        # STRICT name check
+        # ----- STRICT storage name -----
         if ($storageName -ne $expectedName) { ^
             Write-Host \"❌ Storage account name must be '$expectedName'. Found: $storageName\"; exit 1 ^
         } ^
 
-        # Required resource types
+        # ----- Required resource types (SAFE CHECK) -----
         $requiredTypes = @(
             'Microsoft.Storage/storageAccounts',
             'Microsoft.Storage/storageAccounts/blobServices',
@@ -152,7 +151,7 @@ Pipeline stopped immediately.
         ); ^
 
         foreach ($type in $requiredTypes) { ^
-            if ($json.resources.type -notcontains $type) { ^
+            if (-not ($json.resources | Where-Object { $_.type -eq $type })) { ^
                 Write-Host \"❌ Missing resource type: $type\"; exit 1 ^
             } ^
         } ^
