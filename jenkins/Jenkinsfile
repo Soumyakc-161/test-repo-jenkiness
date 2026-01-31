@@ -110,21 +110,21 @@ Pipeline stopped immediately.
         /* =====================================================
            4. Storage Account Template Validation
         ====================================================== */
-       stage('Validate - Storage Account Template') {
+       stage('Validate - Storage Account Basics') {
     steps {
         bat '''
-        echo 🔍 Validating Storage Account ARM Template...
+        echo 🔍 Validating Storage Account Template - Basics...
 
         set FILE=azure-adf-e2e\\arm-templates\\storage-account\\storage.json
-        set PSFILE=validate-storage.ps1
+        set PSFILE=validate-storage-basics.ps1
 
-        REM ===== 1. File exists =====
+        REM ===== File exists =====
         if not exist %FILE% (
             echo ❌ storage.json missing at expected path
             exit /b 1
         )
 
-        REM ===== Create PowerShell validation script =====
+        REM ===== Create PowerShell script =====
         echo $ErrorActionPreference = 'Stop' > %PSFILE%
         echo $expectedName = 'cftproject' >> %PSFILE%
         echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
@@ -142,7 +142,27 @@ Pipeline stopped immediately.
         echo     exit 1 >> %PSFILE%
         echo } >> %PSFILE%
 
-        REM ---- Required resource types (from YOUR template) ----
+        echo Write-Host '✅ Storage Account basic validation PASSED' >> %PSFILE%
+
+        REM ===== Execute =====
+        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
+        '''
+    }
+}
+
+stage('Validate - Storage Account Resources') {
+    steps {
+        bat '''
+        echo 🔍 Validating Storage Account Template - Resources...
+
+        set FILE=azure-adf-e2e\\arm-templates\\storage-account\\storage.json
+        set PSFILE=validate-storage-resources.ps1
+
+        REM ===== Create PowerShell script =====
+        echo $ErrorActionPreference = 'Stop' > %PSFILE%
+        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
+
+        REM ---- Required resource types ----
         echo $requiredTypes = @( >> %PSFILE%
         echo 'Microsoft.Storage/storageAccounts', >> %PSFILE%
         echo 'Microsoft.Storage/storageAccounts/blobServices', >> %PSFILE%
@@ -159,9 +179,9 @@ Pipeline stopped immediately.
         echo     } >> %PSFILE%
         echo } >> %PSFILE%
 
-        echo Write-Host '✅ Storage Account ARM template validation PASSED' >> %PSFILE%
+        echo Write-Host '✅ Storage Account resource validation PASSED' >> %PSFILE%
 
-        REM ===== Execute validation =====
+        REM ===== Execute =====
         powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
