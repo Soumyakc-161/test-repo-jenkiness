@@ -113,51 +113,53 @@ Pipeline stopped immediately.
         stage('Validate - Storage Account Template') {
     steps {
         bat '''
-        echo 🔍 Validating Storage Account ARM Template (STRICT)...
+        echo 🔍 Validating Storage Account ARM Template...
 
-        set FILE=azure-adf-e2e\\arm-templates\\storage-account\\storage.json
+        set FILE=storage.json
+        set PSFILE=validate-storage.ps1
 
-        REM ===== File exists =====
+        REM ===== 1. File exists =====
         if not exist %FILE% (
             echo ❌ storage.json missing
             exit /b 1
         )
 
-        powershell -NoProfile -Command ^
-        "$ErrorActionPreference = 'Stop'; ^
-        $expectedName = 'cftproject'; ^
-        $json = Get-Content '%FILE%' | ConvertFrom-Json; ^
+        REM ===== Create PowerShell validation script =====
+        echo $ErrorActionPreference = 'Stop' > %PSFILE%
+        echo $expectedName = 'cftproject' >> %PSFILE%
+        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
 
-        # ----- Required parameter -----
-        if (-not $json.parameters.storageAccounts_cftproject_name) { ^
-            Write-Host '❌ Missing parameter: storageAccounts_cftproject_name'; exit 1 ^
-        } ^
+        echo if (-not $json.parameters.storageAccounts_cftproject_name) { >> %PSFILE%
+        echo     Write-Host '❌ Missing parameter: storageAccounts_cftproject_name' >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo } >> %PSFILE%
 
-        $storageName = $json.parameters.storageAccounts_cftproject_name.defaultValue; ^
+        echo $storageName = $json.parameters.storageAccounts_cftproject_name.defaultValue >> %PSFILE%
+        echo if ($storageName -ne $expectedName) { >> %PSFILE%
+        echo     Write-Host \"❌ Storage account name must be '$expectedName'. Found: $storageName\" >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo } >> %PSFILE%
 
-        # ----- STRICT storage name -----
-        if ($storageName -ne $expectedName) { ^
-            Write-Host \"❌ Storage account name must be '$expectedName'. Found: $storageName\"; exit 1 ^
-        } ^
+        echo $requiredTypes = @( >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/blobServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/fileServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/queueServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/tableServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/blobServices/containers' >> %PSFILE%
+        echo ) >> %PSFILE%
 
-        # ----- Required resource types (SAFE CHECK) -----
-        $requiredTypes = @(
-            'Microsoft.Storage/storageAccounts',
-            'Microsoft.Storage/storageAccounts/blobServices',
-            'Microsoft.Storage/storageAccounts/fileServices',
-            'Microsoft.Storage/storageAccounts/queueServices',
-            'Microsoft.Storage/storageAccounts/tableServices',
-            'Microsoft.Storage/storageAccounts/blobServices/containers'
-        ); ^
+        echo foreach ($type in $requiredTypes) { >> %PSFILE%
+        echo     if (-not ($json.resources ^| Where-Object { $_.type -eq $type })) { >> %PSFILE%
+        echo         Write-Host \"❌ Missing resource type: $type\" >> %PSFILE%
+        echo         exit 1 >> %PSFILE%
+        echo     } >> %PSFILE%
+        echo } >> %PSFILE%
 
-        foreach ($type in $requiredTypes) { ^
-            if (-not ($json.resources | Where-Object { $_.type -eq $type })) { ^
-                Write-Host \"❌ Missing resource type: $type\"; exit 1 ^
-            } ^
-        } ^
+        echo Write-Host '✅ Storage Account ARM template validation passed' >> %PSFILE%
 
-        Write-Host '✅ Storage Account ARM template validation passed (STRICT MODE)'
-        "
+        REM ===== Execute PowerShell script =====
+        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
 }
