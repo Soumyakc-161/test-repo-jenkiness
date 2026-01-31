@@ -116,7 +116,6 @@ Pipeline stopped immediately.
         echo 🔍 Validating Storage Account ARM Template (STRICT)...
 
         set FILE=azure-adf-e2e\\arm-templates\\storage-account\\storage.json
-        set EXPECTED_NAME=cftproject
 
         REM ===== 1. File exists =====
         if not exist %FILE% (
@@ -124,25 +123,25 @@ Pipeline stopped immediately.
             exit /b 1
         )
 
-        REM ===== 2–5. JSON + strict content validation =====
-        powershell -Command ^
-        "$json = Get-Content '%FILE%' -ErrorAction Stop | ConvertFrom-Json; ^
+        REM ===== PowerShell validation =====
+        powershell -NoProfile -Command ^
+        "$ErrorActionPreference = 'Stop'; ^
+        $expectedName = 'cftproject'; ^
+        $json = Get-Content '%FILE%' | ConvertFrom-Json; ^
 
-        # ----- 3. Required parameter -----
-        if (-not $json.parameters.storageAccounts_cftproject_name) {
-            Write-Host '❌ Missing parameter: storageAccounts_cftproject_name'
-            exit 1
-        }
+        # Required parameter
+        if (-not $json.parameters.storageAccounts_cftproject_name) { ^
+            Write-Host '❌ Missing parameter: storageAccounts_cftproject_name'; exit 1 ^
+        } ^
 
-        $storageName = $json.parameters.storageAccounts_cftproject_name.defaultValue
+        $storageName = $json.parameters.storageAccounts_cftproject_name.defaultValue; ^
 
-        # ----- 4. STRICT storage name validation (ONLY your name) -----
-        if ($storageName -ne '%EXPECTED_NAME%') {
-            Write-Host \"❌ Storage account name must be '%EXPECTED_NAME%'. Found: $storageName\"
-            exit 1
-        }
+        # STRICT name check
+        if ($storageName -ne $expectedName) { ^
+            Write-Host \"❌ Storage account name must be '$expectedName'. Found: $storageName\"; exit 1 ^
+        } ^
 
-        # ----- 5. Required resource types -----
+        # Required resource types
         $requiredTypes = @(
             'Microsoft.Storage/storageAccounts',
             'Microsoft.Storage/storageAccounts/blobServices',
@@ -150,21 +149,19 @@ Pipeline stopped immediately.
             'Microsoft.Storage/storageAccounts/queueServices',
             'Microsoft.Storage/storageAccounts/tableServices',
             'Microsoft.Storage/storageAccounts/blobServices/containers'
-        )
+        ); ^
 
-        foreach ($type in $requiredTypes) {
-            if ($json.resources.type -notcontains $type) {
-                Write-Host \"❌ Missing resource type: $type\"
-                exit 1
-            }
-        }
+        foreach ($type in $requiredTypes) { ^
+            if ($json.resources.type -notcontains $type) { ^
+                Write-Host \"❌ Missing resource type: $type\"; exit 1 ^
+            } ^
+        } ^
 
         Write-Host '✅ Storage Account ARM template validation passed (STRICT MODE)'
         "
         '''
     }
 }
-
 
         /* =====================================================
            5. Data Factory Template Structure Validation
