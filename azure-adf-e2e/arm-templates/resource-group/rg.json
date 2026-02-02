@@ -4,7 +4,7 @@
     "parameters": {
         "storageAccounts_cftproject_name": {
             "defaultValue": "cftproject",
-            "type": "string"
+            "type": "String"
         },
         "workspaces_cft_databricks_name": {
             "defaultValue": "cft_databricks",
@@ -33,7 +33,7 @@
             "type": "Microsoft.Databricks/accessConnectors",
             "apiVersion": "2025-03-01-preview",
             "name": "[parameters('accessConnectors_adb_access_connector_name')]",
-            "location": "centralindia",
+            "location": "centralindiass",
             "identity": {
                 "type": "SystemAssigned, UserAssigned",
                 "userAssignedIdentities": {
