@@ -93,7 +93,7 @@ Pipeline stopped immediately.
            3. Resource Group Template Validation
         ====================================================== */
         
-        stage('ARM Resource Validation .') {
+        stage('ARM Resource Validation (All Resources)') {
     steps {
         bat '''
         @echo off
@@ -105,8 +105,14 @@ Pipeline stopped immediately.
 
         > %PSFILE% echo $errors=@()
         >> %PSFILE% echo function AddErr($m){$global:errors+=$m}
+
         >> %PSFILE% echo function FindLine($file,$text){
-        >> %PSFILE% echo $n=1; Get-Content $file ^| %%{ if($_ -match [regex]::Escape($text)){return $n}; $n++ }; return "Unknown"
+        >> %PSFILE% echo $pattern = "\\b" + [regex]::Escape($text) + "\\b"
+        >> %PSFILE% echo $lines = Get-Content $file
+        >> %PSFILE% echo for($i=0;$i -lt $lines.Length;$i++){
+        >> %PSFILE% echo if([regex]::IsMatch($lines[$i],$pattern)){ return ($i+1) }
+        >> %PSFILE% echo }
+        >> %PSFILE% echo return "Unknown"
         >> %PSFILE% echo }
 
         >> %PSFILE% echo $allowed=@("eastus","eastus2","westus","westeurope","centralindia","southindia","southeastasia")
@@ -183,8 +189,6 @@ Pipeline stopped immediately.
         '''
     }
 }
-
-    
        
         /* =====================================================
            4. Storage Account Template Validation
