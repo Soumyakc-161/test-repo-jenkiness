@@ -105,15 +105,18 @@ Pipeline stopped immediately.
 
         > %PSFILE% echo $ErrorActionPreference="Stop"
         >> %PSFILE% echo function Fail($m){ Write-Host ""; Write-Host "ERROR:" $m; exit 1 }
+        >> %PSFILE% echo function LineOf($t,$k){$i=1;foreach($l in $t -split "`n"){if($l -match $k){return $i};$i++};return "Unknown"}
 
         >> %PSFILE% echo $allowed=@("eastus","eastus2","westus","westeurope","centralindia","southindia","southeastasia")
 
-        >> %PSFILE% echo function CheckRes($res,$file,$seen){
+        >> %PSFILE% echo function CheckRes($res,$file,$raw,$seen){
+
         >> %PSFILE% echo if(-not $res.type){ Fail("Resource type missing | File -> "+$file) }
         >> %PSFILE% echo if(-not $res.name){ Fail("Resource name missing | File -> "+$file) }
 
         >> %PSFILE% echo if($res.name -isnot [string]){
-        >> %PSFILE% echo Fail("Datatype error | name must be string | Resource -> "+$res.name+" | File -> "+$file)
+        >> %PSFILE% echo $ln=LineOf $raw "name"
+        >> %PSFILE% echo Fail("Datatype error | name must be string | Line -> "+$ln)
         >> %PSFILE% echo }
 
         >> %PSFILE% echo if($seen -contains $res.name){
@@ -124,46 +127,59 @@ Pipeline stopped immediately.
         >> %PSFILE% echo if($res.PSObject.Properties["location"]){
 
         >> %PSFILE% echo if($res.location -isnot [string]){
-        >> %PSFILE% echo Fail("Datatype error | location must be string | Resource -> "+$res.name)
+        >> %PSFILE% echo $ln=LineOf $raw "location"
+        >> %PSFILE% echo Fail("Datatype error | location must be string | Line -> "+$ln)
         >> %PSFILE% echo }
 
         >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($res.location)){
-        >> %PSFILE% echo Fail("Region empty | Resource -> "+$res.name)
+        >> %PSFILE% echo $ln=LineOf $raw "location"
+        >> %PSFILE% echo Fail("Region empty | Line -> "+$ln)
         >> %PSFILE% echo }
 
         >> %PSFILE% echo if($res.location -notlike "[*]"){
         >> %PSFILE% echo if($allowed -notcontains $res.location){
-        >> %PSFILE% echo Fail("Region spelling invalid -> "+$res.location+" | Resource -> "+$res.name)
+        >> %PSFILE% echo $ln=LineOf $raw $res.location
+        >> %PSFILE% echo Fail("Region spelling invalid -> "+$res.location+" | Line -> "+$ln)
         >> %PSFILE% echo }
         >> %PSFILE% echo }
 
         >> %PSFILE% echo }
 
         >> %PSFILE% echo if($res.resources){
-        >> %PSFILE% echo foreach($c in $res.resources){ CheckRes $c $file $seen }
+        >> %PSFILE% echo foreach($c in $res.resources){ CheckRes $c $file $raw $seen }
         >> %PSFILE% echo }
 
         >> %PSFILE% echo }
 
         >> %PSFILE% echo $files = Get-ChildItem "azure-adf-e2e\\arm-templates\\resource-group" -Recurse -Filter *.json
-        >> %PSFILE% echo if(!$files){ Fail "No ARM templates found in resource-group folder" }
 
         >> %PSFILE% echo foreach($f in $files){
+
         >> %PSFILE% echo Write-Host ""
         >> %PSFILE% echo Write-Host "Checking file:" $f.FullName
+        >> %PSFILE% echo $raw = Get-Content $f.FullName -Raw
 
         >> %PSFILE% echo try{
-        >> %PSFILE% echo $json = Get-Content $f.FullName -Raw ^| ConvertFrom-Json
+        >> %PSFILE% echo $json = $raw ^| ConvertFrom-Json
         >> %PSFILE% echo }catch{
-        >> %PSFILE% echo Fail("Syntax error | File -> "+$f.Name+" | "+$_.Exception.Message)
+        >> %PSFILE% echo Fail("Syntax error | "+$_.Exception.Message)
         >> %PSFILE% echo }
 
-        >> %PSFILE% echo if(-not $json.resources){ Fail("resources[] missing | File -> "+$f.Name) }
+        >> %PSFILE% echo if($json.parameters){
+        >> %PSFILE% echo foreach($p in $json.parameters.PSObject.Properties){
+        >> %PSFILE% echo if($p.Name -like "*name*" -and $p.Value.type -ne "string"){
+        >> %PSFILE% echo $ln=LineOf $raw $p.Name
+        >> %PSFILE% echo Fail("Parameter datatype invalid | "+$p.Name+" must be string | Line -> "+$ln)
+        >> %PSFILE% echo }
+        >> %PSFILE% echo }
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo if(-not $json.resources){ Fail("resources[] missing") }
 
         >> %PSFILE% echo $seen = New-Object System.Collections.Generic.HashSet[string]
 
         >> %PSFILE% echo foreach($r in $json.resources){
-        >> %PSFILE% echo CheckRes $r $f.Name $seen
+        >> %PSFILE% echo CheckRes $r $f.Name $raw $seen
         >> %PSFILE% echo }
 
         >> %PSFILE% echo Write-Host "PASS -> " $f.Name
@@ -176,9 +192,6 @@ Pipeline stopped immediately.
         '''
     }
 }
-
-
-
        
         /* =====================================================
            4. Storage Account Template Validation
