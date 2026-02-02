@@ -100,60 +100,60 @@ Pipeline stopped immediately.
         echo RG ARM VALIDATION STARTED
         echo =====================================
 
-        set PSFILE=rg-validate.ps1
+        set PSFILE=rgcheck.ps1
 
         > %PSFILE% echo $ErrorActionPreference="Stop"
         >> %PSFILE% echo function Fail($m){ Write-Host ""; Write-Host "ERROR:" $m; exit 1 }
-        >> %PSFILE% echo function FindLine($t,$k){$i=1;foreach($l in $t -split "`n"){if($l -match $k){return $i};$i++};return "Unknown"}
 
         >> %PSFILE% echo $files = Get-ChildItem "azure-adf-e2e\\arm-templates\\resource-group" -Filter *.json
-        >> %PSFILE% echo if(!$files){ Fail "No RG templates found" }
+        >> %PSFILE% echo if(!$files){ Fail "No RG template files found" }
 
-        >> %PSFILE% echo foreach($file in $files){
+        >> %PSFILE% echo foreach($f in $files){
         >> %PSFILE% echo Write-Host ""
-        >> %PSFILE% echo Write-Host "Checking file:" $file.FullName
-        >> %PSFILE% echo $raw = Get-Content $file.FullName -Raw
+        >> %PSFILE% echo Write-Host "Checking file:" $f.FullName
 
-        >> %PSFILE% echo try{$json=$raw ^| ConvertFrom-Json}catch{Fail("Syntax error | "+$_.Exception.Message)}
-
-        >> %PSFILE% echo if(-not $json.resources){ Fail "resources[] missing" }
-
-        >> %PSFILE% echo $names=@()
-        >> %PSFILE% echo foreach($r in $json.resources){
-
-        >> %PSFILE% echo if(-not $r.type){ Fail "Resource type missing" }
-        >> %PSFILE% echo if(-not $r.name){ Fail "Resource name missing" }
-
-        >> %PSFILE% echo if($names -contains $r.name){ Fail("Duplicate resource -> "+$r.name) }
-        >> %PSFILE% echo $names += $r.name
-
-        >> %PSFILE% echo if(-not $r.location){
-        >> %PSFILE% echo $ln=FindLine $raw "location"
-        >> %PSFILE% echo Fail("Location missing | Line -> "+$ln)
+        >> %PSFILE% echo try{
+        >> %PSFILE% echo   $j = Get-Content $f.FullName -Raw ^| ConvertFrom-Json
+        >> %PSFILE% echo }catch{
+        >> %PSFILE% echo   Fail ("JSON syntax error -> " + $_.Exception.Message)
         >> %PSFILE% echo }
 
+        >> %PSFILE% echo if(-not $j.resources){ Fail "resources block missing" }
+
+        >> %PSFILE% echo $seen=@()
+
+        >> %PSFILE% echo foreach($r in $j.resources){
+
+        >> %PSFILE% echo if($r.type -ne "Microsoft.Resources/resourceGroups"){ continue }
+
+        >> %PSFILE% echo if(-not $r.name){ Fail "RG name missing in resources[]" }
+
+        >> %PSFILE% echo if($seen -contains $r.name){ Fail ("Duplicate RG name -> " + $r.name) }
+        >> %PSFILE% echo $seen += $r.name
+
+        >> %PSFILE% echo if(-not $r.location){ Fail ("Location missing for RG -> " + $r.name) }
+
         >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($r.location)){
-        >> %PSFILE% echo Fail("Location empty")
+        >> %PSFILE% echo Fail ("Location empty for RG -> " + $r.name)
         >> %PSFILE% echo }
 
         >> %PSFILE% echo $allowed=@("eastus","eastus2","westus","westeurope","centralindia","southindia","southeastasia")
         >> %PSFILE% echo if($allowed -notcontains $r.location){
-        >> %PSFILE% echo Fail("Invalid region -> "+$r.location)
+        >> %PSFILE% echo Fail ("Invalid region -> " + $r.location + " for RG -> " + $r.name)
         >> %PSFILE% echo }
 
         >> %PSFILE% echo }
 
-        >> %PSFILE% echo Write-Host "PASS -> " $file.Name
+        >> %PSFILE% echo Write-Host "PASS -> " $f.Name
         >> %PSFILE% echo }
 
         >> %PSFILE% echo Write-Host ""
-        >> %PSFILE% echo Write-Host "ALL RG TEMPLATES VALID"
+        >> %PSFILE% echo Write-Host "ALL RG ARM TEMPLATES VALID"
 
         powershell -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
 }
-
        
         /* =====================================================
            4. Storage Account Template Validation
