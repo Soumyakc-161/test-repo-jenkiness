@@ -12,7 +12,7 @@
         },
         "virtualNetworks_CFT_Virtual_Network_name": {
             "defaultValue": "CFT_Virtual_Network",
-            "type": "String"
+            "type": "int"
         },
         "accessConnectors_adb_access_connector_name": {
             "defaultValue": "adb-access-connector",
