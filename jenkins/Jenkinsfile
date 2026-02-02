@@ -101,89 +101,90 @@ Pipeline stopped immediately.
         echo ARM RESOURCE VALIDATION STARTED
         echo =====================================
 
-        set PSFILE=arm_full_validate.ps1
+        set PSFILE=arm_validate.ps1
 
-        > %PSFILE% echo $errors = @()
-        >> %PSFILE% echo function AddErr($m){ $global:errors += $m }
-        >> %PSFILE% echo function LineOf($t,$k){$i=1;foreach($l in $t -split "`n"){if($l -match $k){return $i};$i++};return "Unknown"}
+        > %PSFILE% echo $errors=@()
+        >> %PSFILE% echo function AddErr($m){$global:errors+=$m}
+        >> %PSFILE% echo function FindLine($file,$text){
+        >> %PSFILE% echo $n=1; Get-Content $file ^| %%{ if($_ -match [regex]::Escape($text)){return $n}; $n++ }; return "Unknown"
+        >> %PSFILE% echo }
 
         >> %PSFILE% echo $allowed=@("eastus","eastus2","westus","westeurope","centralindia","southindia","southeastasia")
 
-        >> %PSFILE% echo function CheckRes($res,$file,$raw,$seen){
+        >> %PSFILE% echo function CheckRes($res,$file,$seen){
 
-        >> %PSFILE% echo if(-not $res.type){ AddErr("Resource type missing | "+$file) }
-        >> %PSFILE% echo if(-not $res.name){ AddErr("Resource name missing | "+$file) }
+        >> %PSFILE% echo if(-not $res.type){ AddErr("Type missing | "+$file) }
+        >> %PSFILE% echo if(-not $res.name){ AddErr("Name missing | "+$file) }
 
         >> %PSFILE% echo if($res.name -isnot [string]){
-        >> %PSFILE% echo AddErr("Datatype error | name not string | Line -> "+(LineOf $raw "name"))
+        >> %PSFILE% echo AddErr("Datatype error name | Line "+(FindLine $file "name"))
         >> %PSFILE% echo }
 
-        >> %PSFILE% echo if($seen -contains $res.name){
-        >> %PSFILE% echo AddErr("Duplicate resource name -> "+$res.name)
+        >> %PSFILE% echo $key=$res.type+"|"+$res.name
+        >> %PSFILE% echo if($seen -contains $key){
+        >> %PSFILE% echo AddErr("Duplicate resource | "+$res.name+" | Line "+(FindLine $file $res.name))
         >> %PSFILE% echo }
-        >> %PSFILE% echo $seen.Add($res.name) ^| Out-Null
+        >> %PSFILE% echo $seen.Add($key)^|Out-Null
 
         >> %PSFILE% echo if($res.PSObject.Properties["location"]){
 
         >> %PSFILE% echo if($res.location -isnot [string]){
-        >> %PSFILE% echo AddErr("location datatype wrong | "+$res.name)
+        >> %PSFILE% echo AddErr("Location datatype wrong | Line "+(FindLine $file "location"))
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($res.location)){
+        >> %PSFILE% echo AddErr("Location empty | Line "+(FindLine $file "location"))
         >> %PSFILE% echo }
 
         >> %PSFILE% echo if($res.location -notlike "[*]" -and $allowed -notcontains $res.location){
-        >> %PSFILE% echo AddErr("Invalid region -> "+$res.location+" | "+$res.name)
+        >> %PSFILE% echo AddErr("Invalid region "+$res.location+" | Line "+(FindLine $file $res.location))
         >> %PSFILE% echo }
 
         >> %PSFILE% echo }
 
-        >> %PSFILE% echo if($res.resources){
-        >> %PSFILE% echo foreach($c in $res.resources){ CheckRes $c $file $raw $seen }
-        >> %PSFILE% echo }
+        >> %PSFILE% echo if($res.resources){ foreach($c in $res.resources){ CheckRes $c $file $seen } }
 
         >> %PSFILE% echo }
 
-        >> %PSFILE% echo $files = Get-ChildItem "azure-adf-e2e\\arm-templates\\resource-group" -Recurse -Filter *.json
+        >> %PSFILE% echo $files=Get-ChildItem "azure-adf-e2e\\arm-templates\\resource-group" -Recurse -Filter *.json
 
         >> %PSFILE% echo foreach($f in $files){
-
         >> %PSFILE% echo Write-Host ""
         >> %PSFILE% echo Write-Host "Checking file:" $f.Name
-        >> %PSFILE% echo $raw = Get-Content $f.FullName -Raw
 
-        >> %PSFILE% echo try{$json=$raw ^| ConvertFrom-Json}catch{AddErr("Syntax error -> "+$f.Name); continue}
+        >> %PSFILE% echo try{$json=Get-Content $f.FullName -Raw ^| ConvertFrom-Json}
+        >> %PSFILE% echo catch{ AddErr("Syntax error "+$f.Name+" line "+$_.Exception.LineNumber); continue }
 
         >> %PSFILE% echo if($json.parameters){
         >> %PSFILE% echo foreach($p in $json.parameters.PSObject.Properties){
-
         >> %PSFILE% echo if($p.Name -like "*name*" -and $p.Value.type -ne "string"){
-        >> %PSFILE% echo AddErr("Param datatype wrong -> "+$p.Name)
+        >> %PSFILE% echo AddErr("Param datatype wrong "+$p.Name+" | Line "+(FindLine $f.FullName $p.Name))
         >> %PSFILE% echo }
-
-        >> %PSFILE% echo if($p.Name -like "*location*" -and $allowed -notcontains $p.Value.defaultValue){
-        >> %PSFILE% echo AddErr("Param region invalid -> "+$p.Value.defaultValue)
-        >> %PSFILE% echo }
-
         >> %PSFILE% echo }
         >> %PSFILE% echo }
 
-        >> %PSFILE% echo $seen = New-Object System.Collections.Generic.HashSet[string]
-        >> %PSFILE% echo foreach($r in $json.resources){ CheckRes $r $f.Name $raw $seen }
+        >> %PSFILE% echo if($json.resources){
+        >> %PSFILE% echo $seen=New-Object System.Collections.Generic.HashSet[string]
+        >> %PSFILE% echo foreach($r in $json.resources){ CheckRes $r $f.FullName $seen }
+        >> %PSFILE% echo } else { AddErr("resources missing | "+$f.Name) }
 
         >> %PSFILE% echo }
 
         >> %PSFILE% echo if($errors.Count -gt 0){
         >> %PSFILE% echo Write-Host ""
         >> %PSFILE% echo Write-Host "===== VALIDATION ERRORS ====="
-        >> %PSFILE% echo $errors ^| %% { Write-Host $_ }
+        >> %PSFILE% echo $errors ^| %%{Write-Host $_}
         >> %PSFILE% echo exit 1
         >> %PSFILE% echo }
 
-        >> %PSFILE% echo Write-Host "ALL ARM RESOURCES VALID"
+        >> %PSFILE% echo Write-Host "ALL ARM VALID"
 
         powershell -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
 }
 
+    
        
         /* =====================================================
            4. Storage Account Template Validation
