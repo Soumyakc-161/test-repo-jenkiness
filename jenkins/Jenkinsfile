@@ -92,7 +92,7 @@ Pipeline stopped immediately.
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
-      stage('Validate Resource Group ARM Template') {
+        stage('Validate Resource Group ARM Template') {
     steps {
         bat '''
         @echo off
@@ -102,58 +102,67 @@ Pipeline stopped immediately.
 
         set PSFILE=rg-validate.ps1
 
-        > %PSFILE% echo $ErrorActionPreference = "Stop"
-        >> %PSFILE% echo Set-StrictMode -Version Latest
-        >> %PSFILE% echo $file = "azure-adf-e2e\\arm-templates\\resource-group\\rg.json"
-        >> %PSFILE% echo if(!(Test-Path $file)){ throw "rg.json not found -> $file" }
+        > %PSFILE% echo $ErrorActionPreference="Stop"
+
+        >> %PSFILE% echo function Fail($msg){ Write-Host ""; Write-Host "ERROR:" $msg; exit 1 }
+
+        >> %PSFILE% echo $file="azure-adf-e2e\\arm-templates\\resource-group\\rg.json"
+        >> %PSFILE% echo if(!(Test-Path $file)){ Fail "File not found -> $file" }
+
         >> %PSFILE% echo Write-Host "Checking file:" $file
 
         >> %PSFILE% echo try {
-        >> %PSFILE% echo   $json = Get-Content $file -Raw ^| ConvertFrom-Json
+        >> %PSFILE% echo   $raw = Get-Content $file -Raw
+        >> %PSFILE% echo   $json = $raw ^| ConvertFrom-Json
         >> %PSFILE% echo } catch {
-        >> %PSFILE% echo   Write-Host "JSON SYNTAX ERROR:"
-        >> %PSFILE% echo   Write-Host $_.Exception.Message
-        >> %PSFILE% echo   throw
+        >> %PSFILE% echo   Fail ("JSON syntax error in file -> " + $file + " | " + $_.Exception.Message)
         >> %PSFILE% echo }
 
-        >> %PSFILE% echo if(-not $json.'$schema'){ throw "Schema missing" }
+        >> %PSFILE% echo if(-not $json.parameters){ Fail "parameters block missing in rg.json" }
 
-        >> %PSFILE% echo if(-not $json.parameters){ throw "parameters block missing" }
-
-        >> %PSFILE% echo $required = @("subscriptionId","resourceGroupName","location")
-        >> %PSFILE% echo foreach($p in $required){
-        >> %PSFILE% echo   if(-not $json.parameters.$p){ throw "Missing parameter -> $p" }
-        >> %PSFILE% echo   if(-not $json.parameters.$p.type){ throw "Datatype missing -> $p" }
+        >> %PSFILE% echo function CheckParam($name){
+        >> %PSFILE% echo   if(-not $json.parameters.PSObject.Properties[$name]){
+        >> %PSFILE% echo     Fail ("Missing parameter -> parameters." + $name + " | File -> rg.json")
+        >> %PSFILE% echo   }
+        >> %PSFILE% echo   if(-not $json.parameters.$name.type){
+        >> %PSFILE% echo     Fail ("Datatype missing -> parameters." + $name)
+        >> %PSFILE% echo   }
         >> %PSFILE% echo }
+
+        >> %PSFILE% echo CheckParam "subscriptionId"
+        >> %PSFILE% echo CheckParam "resourceGroupName"
+        >> %PSFILE% echo CheckParam "location"
+
+        >> %PSFILE% echo $sub = $json.parameters.subscriptionId.defaultValue
+        >> %PSFILE% echo if(-not $sub){ Fail "subscriptionId defaultValue missing" }
+        >> %PSFILE% echo if($sub -notmatch "^[0-9a-fA-F-]{36}$"){ Fail "subscriptionId format invalid -> $sub" }
+
+        >> %PSFILE% echo $rg = $json.parameters.resourceGroupName.defaultValue
+        >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($rg)){ Fail "resourceGroupName empty" }
 
         >> %PSFILE% echo $loc = $json.parameters.location.defaultValue
-        >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($loc)){ throw "Region empty" }
+        >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($loc)){ Fail "location/region empty" }
 
         >> %PSFILE% echo $allowed=@("eastus","eastus2","westus","westeurope","centralindia","southindia","southeastasia")
-        >> %PSFILE% echo if($allowed -notcontains $loc){ throw "Invalid region -> $loc" }
+        >> %PSFILE% echo if($allowed -notcontains $loc){ Fail ("Invalid region spelling -> " + $loc) }
 
-        >> %PSFILE% echo if(-not $json.resources){ throw "resources[] missing" }
+        >> %PSFILE% echo if(-not $json.resources){ Fail "resources[] block missing" }
 
         >> %PSFILE% echo $names=@()
         >> %PSFILE% echo foreach($r in $json.resources){
-        >> %PSFILE% echo   if(-not $r.type){ throw "Resource type missing" }
-        >> %PSFILE% echo   if(-not $r.name){ throw "Resource name missing" }
-        >> %PSFILE% echo   if($names -contains $r.name){ throw "Duplicate resource -> $($r.name)" }
+        >> %PSFILE% echo   if(-not $r.type){ Fail "Resource type missing" }
+        >> %PSFILE% echo   if(-not $r.name){ Fail "Resource name missing" }
+        >> %PSFILE% echo   if($names -contains $r.name){ Fail ("Duplicate resource name -> " + $r.name) }
         >> %PSFILE% echo   $names += $r.name
         >> %PSFILE% echo }
 
         >> %PSFILE% echo Write-Host ""
-        >> %PSFILE% echo Write-Host "====================================="
         >> %PSFILE% echo Write-Host "RG TEMPLATE VALIDATION PASSED"
-        >> %PSFILE% echo Write-Host "====================================="
 
         powershell -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
 }
-
-        
-
 
         /* =====================================================
            4. Storage Account Template Validation
