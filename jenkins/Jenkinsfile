@@ -92,7 +92,8 @@ Pipeline stopped immediately.
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
-        stage('Validate Resource Group ARM Templates') {
+        
+        stage('Validate ALL RG ARM Templates') {
     steps {
         bat '''
         @echo off
@@ -100,46 +101,64 @@ Pipeline stopped immediately.
         echo RG ARM VALIDATION STARTED
         echo =====================================
 
-        set PSFILE=rgcheck.ps1
+        set PSFILE=rg_enterprise_validate.ps1
 
         > %PSFILE% echo $ErrorActionPreference="Stop"
-        >> %PSFILE% echo function Fail($m){ Write-Host ""; Write-Host "ERROR:" $m; exit 1 }
+        >> %PSFILE% echo function Fail($msg){ Write-Host ""; Write-Host "ERROR:" $msg; exit 1 }
+        >> %PSFILE% echo function LineOf($txt,$key){$i=1;foreach($l in $txt -split "`n"){if($l -match $key){return $i};$i++};return "Unknown"}
 
-        >> %PSFILE% echo $files = Get-ChildItem "azure-adf-e2e\\arm-templates\\resource-group" -Filter *.json
-        >> %PSFILE% echo if(!$files){ Fail "No RG template files found" }
+        >> %PSFILE% echo $files = Get-ChildItem "azure-adf-e2e\\arm-templates\\resource-group" -Filter *.json -Recurse
+        >> %PSFILE% echo if(!$files){ Fail "No RG ARM templates found" }
+
+        >> %PSFILE% echo $allowedRegions=@("eastus","eastus2","westus","westeurope","centralindia","southindia","southeastasia")
 
         >> %PSFILE% echo foreach($f in $files){
         >> %PSFILE% echo Write-Host ""
         >> %PSFILE% echo Write-Host "Checking file:" $f.FullName
+        >> %PSFILE% echo $raw = Get-Content $f.FullName -Raw
 
         >> %PSFILE% echo try{
-        >> %PSFILE% echo   $j = Get-Content $f.FullName -Raw ^| ConvertFrom-Json
+        >> %PSFILE% echo $json = $raw ^| ConvertFrom-Json
         >> %PSFILE% echo }catch{
-        >> %PSFILE% echo   Fail ("JSON syntax error -> " + $_.Exception.Message)
+        >> %PSFILE% echo Fail("Syntax error | File -> "+$f.Name+" | "+$_.Exception.Message)
         >> %PSFILE% echo }
 
-        >> %PSFILE% echo if(-not $j.resources){ Fail "resources block missing" }
+        >> %PSFILE% echo if(-not $json.resources){ Fail("resources[] missing | File -> "+$f.Name) }
 
-        >> %PSFILE% echo $seen=@()
+        >> %PSFILE% echo $rgSeen=@()
 
-        >> %PSFILE% echo foreach($r in $j.resources){
+        >> %PSFILE% echo foreach($r in $json.resources){
 
         >> %PSFILE% echo if($r.type -ne "Microsoft.Resources/resourceGroups"){ continue }
 
-        >> %PSFILE% echo if(-not $r.name){ Fail "RG name missing in resources[]" }
-
-        >> %PSFILE% echo if($seen -contains $r.name){ Fail ("Duplicate RG name -> " + $r.name) }
-        >> %PSFILE% echo $seen += $r.name
-
-        >> %PSFILE% echo if(-not $r.location){ Fail ("Location missing for RG -> " + $r.name) }
-
-        >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($r.location)){
-        >> %PSFILE% echo Fail ("Location empty for RG -> " + $r.name)
+        >> %PSFILE% echo if($r.name -isnot [string]){
+        >> %PSFILE% echo Fail("Datatype error | Field -> resources.name | Expected string | File -> "+$f.Name)
         >> %PSFILE% echo }
 
-        >> %PSFILE% echo $allowed=@("eastus","eastus2","westus","westeurope","centralindia","southindia","southeastasia")
-        >> %PSFILE% echo if($allowed -notcontains $r.location){
-        >> %PSFILE% echo Fail ("Invalid region -> " + $r.location + " for RG -> " + $r.name)
+        >> %PSFILE% echo if($rgSeen -contains $r.name){
+        >> %PSFILE% echo Fail("Duplicate RG name | "+$r.name+" | File -> "+$f.Name)
+        >> %PSFILE% echo }
+        >> %PSFILE% echo $rgSeen += $r.name
+
+        >> %PSFILE% echo if(-not $r.location){
+        >> %PSFILE% echo $ln=LineOf $raw "location"
+        >> %PSFILE% echo Fail("Location missing | RG -> "+$r.name+" | Line -> "+$ln)
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo if($r.location -isnot [string]){
+        >> %PSFILE% echo Fail("Datatype error | location must be string | RG -> "+$r.name)
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($r.location)){
+        >> %PSFILE% echo Fail("Region empty | RG -> "+$r.name)
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo if($allowedRegions -notcontains $r.location){
+        >> %PSFILE% echo Fail("Region spelling invalid | "+$r.location+" | RG -> "+$r.name)
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo if($r.tags -and $r.tags -isnot [object]){
+        >> %PSFILE% echo Fail("Datatype error | tags must be object | RG -> "+$r.name)
         >> %PSFILE% echo }
 
         >> %PSFILE% echo }
@@ -148,12 +167,13 @@ Pipeline stopped immediately.
         >> %PSFILE% echo }
 
         >> %PSFILE% echo Write-Host ""
-        >> %PSFILE% echo Write-Host "ALL RG ARM TEMPLATES VALID"
+        >> %PSFILE% echo Write-Host "ALL RG ARM TEMPLATES VALIDATED"
 
         powershell -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
 }
+
        
         /* =====================================================
            4. Storage Account Template Validation
