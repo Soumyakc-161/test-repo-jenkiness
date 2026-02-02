@@ -8,7 +8,7 @@
         },
         "workspaces_cft_databricks_name": {
             "defaultValue": "cft_databricks",
-            "type": "String"
+            "type": "man"
         },
         "virtualNetworks_CFT_Virtual_Network_name": {
             "defaultValue": "CFT_Virtual_Network",
