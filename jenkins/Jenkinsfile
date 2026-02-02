@@ -92,7 +92,7 @@ Pipeline stopped immediately.
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
-        stage('Validate Resource Group ARM Template') {
+        stage('Validate Resource Group ARM Templates') {
     steps {
         bat '''
         @echo off
@@ -103,85 +103,58 @@ Pipeline stopped immediately.
         set PSFILE=rg-validate.ps1
 
         > %PSFILE% echo $ErrorActionPreference="Stop"
+        >> %PSFILE% echo function Fail($m){ Write-Host ""; Write-Host "ERROR:" $m; exit 1 }
+        >> %PSFILE% echo function FindLine($t,$k){$i=1;foreach($l in $t -split "`n"){if($l -match $k){return $i};$i++};return "Unknown"}
 
-        >> %PSFILE% echo function Fail($msg){ Write-Host ""; Write-Host "ERROR:" $msg; exit 1 }
+        >> %PSFILE% echo $files = Get-ChildItem "azure-adf-e2e\\arm-templates\\resource-group" -Filter *.json
+        >> %PSFILE% echo if(!$files){ Fail "No RG templates found" }
 
-        >> %PSFILE% echo function FindLine($text,$key){
-        >> %PSFILE% echo $i=1
-        >> %PSFILE% echo foreach($l in $text -split "`n"){ if($l -match $key){ return $i }; $i++ }
-        >> %PSFILE% echo return "Unknown"
-        >> %PSFILE% echo }
+        >> %PSFILE% echo foreach($file in $files){
+        >> %PSFILE% echo Write-Host ""
+        >> %PSFILE% echo Write-Host "Checking file:" $file.FullName
+        >> %PSFILE% echo $raw = Get-Content $file.FullName -Raw
 
-        >> %PSFILE% echo $file="azure-adf-e2e\\arm-templates\\resource-group\\rg.json"
-        >> %PSFILE% echo if(!(Test-Path $file)){ Fail "File not found -> $file" }
+        >> %PSFILE% echo try{$json=$raw ^| ConvertFrom-Json}catch{Fail("Syntax error | "+$_.Exception.Message)}
 
-        >> %PSFILE% echo Write-Host "Checking file:" $file
-        >> %PSFILE% echo $raw = Get-Content $file -Raw
-
-        >> %PSFILE% echo try {
-        >> %PSFILE% echo   $json = $raw ^| ConvertFrom-Json
-        >> %PSFILE% echo } catch {
-        >> %PSFILE% echo   Fail ("JSON syntax error | Line -> " + $_.Exception.LineNumber + " | " + $_.Exception.Message)
-        >> %PSFILE% echo }
-
-        >> %PSFILE% echo if(-not $json.parameters){ Fail "parameters block missing" }
-
-        >> %PSFILE% echo function CheckRequired($name){
-        >> %PSFILE% echo if(-not $json.parameters.PSObject.Properties[$name]){
-        >> %PSFILE% echo $ln=FindLine $raw $name
-        >> %PSFILE% echo Fail ("Missing parameter -> " + $name + " | Line -> " + $ln)
-        >> %PSFILE% echo }
-        >> %PSFILE% echo if(-not $json.parameters.$name.type){
-        >> %PSFILE% echo Fail ("Datatype missing -> " + $name)
-        >> %PSFILE% echo }
-        >> %PSFILE% echo }
-
-        # REQUIRED FOR RG DEPLOYMENT
-        >> %PSFILE% echo CheckRequired "resourceGroupName"
-        >> %PSFILE% echo CheckRequired "location"
-
-        # OPTIONAL subscriptionId — validate format only if present
-        >> %PSFILE% echo if($json.parameters.PSObject.Properties["subscriptionId"]){
-        >> %PSFILE% echo $sub=$json.parameters.subscriptionId.defaultValue
-        >> %PSFILE% echo if($sub -and $sub -notmatch "^[0-9a-fA-F-]{36}$"){
-        >> %PSFILE% echo Fail ("Invalid subscriptionId format -> " + $sub)
-        >> %PSFILE% echo }
-        >> %PSFILE% echo }
-
-        >> %PSFILE% echo $rg=$json.parameters.resourceGroupName.defaultValue
-        >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($rg)){
-        >> %PSFILE% echo Fail "resourceGroupName empty"
-        >> %PSFILE% echo }
-
-        >> %PSFILE% echo $loc=$json.parameters.location.defaultValue
-        >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($loc)){
-        >> %PSFILE% echo $ln=FindLine $raw "location"
-        >> %PSFILE% echo Fail ("Region empty | Line -> " + $ln)
-        >> %PSFILE% echo }
-
-        >> %PSFILE% echo $allowed=@("eastus","eastus2","westus","westeurope","centralindia","southindia","southeastasia")
-        >> %PSFILE% echo if($allowed -notcontains $loc){
-        >> %PSFILE% echo Fail ("Invalid region spelling -> " + $loc)
-        >> %PSFILE% echo }
-
-        >> %PSFILE% echo if(-not $json.resources){ Fail "resources[] block missing" }
+        >> %PSFILE% echo if(-not $json.resources){ Fail "resources[] missing" }
 
         >> %PSFILE% echo $names=@()
         >> %PSFILE% echo foreach($r in $json.resources){
+
         >> %PSFILE% echo if(-not $r.type){ Fail "Resource type missing" }
         >> %PSFILE% echo if(-not $r.name){ Fail "Resource name missing" }
-        >> %PSFILE% echo if($names -contains $r.name){ Fail ("Duplicate resource -> " + $r.name) }
+
+        >> %PSFILE% echo if($names -contains $r.name){ Fail("Duplicate resource -> "+$r.name) }
         >> %PSFILE% echo $names += $r.name
+
+        >> %PSFILE% echo if(-not $r.location){
+        >> %PSFILE% echo $ln=FindLine $raw "location"
+        >> %PSFILE% echo Fail("Location missing | Line -> "+$ln)
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($r.location)){
+        >> %PSFILE% echo Fail("Location empty")
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo $allowed=@("eastus","eastus2","westus","westeurope","centralindia","southindia","southeastasia")
+        >> %PSFILE% echo if($allowed -notcontains $r.location){
+        >> %PSFILE% echo Fail("Invalid region -> "+$r.location)
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo Write-Host "PASS -> " $file.Name
         >> %PSFILE% echo }
 
         >> %PSFILE% echo Write-Host ""
-        >> %PSFILE% echo Write-Host "RG TEMPLATE VALIDATION PASSED"
+        >> %PSFILE% echo Write-Host "ALL RG TEMPLATES VALID"
 
         powershell -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
 }
 
+       
         /* =====================================================
            4. Storage Account Template Validation
         ====================================================== */
