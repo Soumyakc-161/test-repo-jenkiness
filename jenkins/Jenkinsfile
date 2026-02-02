@@ -132,10 +132,11 @@ Pipeline stopped immediately.
         >> %PSFILE% echo if($j.parameters){
         >> %PSFILE% echo foreach($p in $j.parameters.PSObject.Properties){
 	
-	>> %PSFILE% echo if($p.Value.type -notin $validTypes){
-	>> %PSFILE% echo $ln = FindLine $f.FullName $p.Name
-	>> %PSFILE% echo AddErr("Datatype error | File="+$f.Name+" | Parameter="+$p.Name+" | Line="+$ln+" | Found="+$p.Value.type+" | Expected=valid datatype")
-	>> %PSFILE% echo }
+	    >> %PSFILE% echo if(($p.Value.type).ToLower() -notin $validTypes){
+        >> %PSFILE% echo $ln = FindLine $f.FullName $p.Name
+        >> %PSFILE% echo AddErr("Datatype error | File="+$f.Name+" | Parameter="+$p.Name+" | Line="+$ln+" | Found="+$p.Value.type+" | Expected=valid datatype")
+        >> %PSFILE% echo }
+
 	
 
         >> %PSFILE% echo if($p.Name -like "*location*" -and $p.Value.defaultValue){
