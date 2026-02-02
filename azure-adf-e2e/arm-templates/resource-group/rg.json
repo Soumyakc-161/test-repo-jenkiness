@@ -3,7 +3,7 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "storageAccounts_cftproject_name": {
-            "defaultValue": "cftproject",
+            "defaultValue": "cftproject-01",
             "type": "String"
         },
         "workspaces_cft_databricks_name": {
