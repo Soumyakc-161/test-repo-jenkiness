@@ -93,7 +93,7 @@ Pipeline stopped immediately.
            3. Resource Group Template Validation
         ====================================================== */
         
-      stage('ARM RG Validation') {
+      stage('ARM Resource Validation') {
     steps {
         bat '''
         @echo off
@@ -131,11 +131,12 @@ Pipeline stopped immediately.
 
         >> %PSFILE% echo if($j.parameters){
         >> %PSFILE% echo foreach($p in $j.parameters.PSObject.Properties){
-
-        >> %PSFILE% echo if($p.Name -like "*name*" -and $p.Value.type -ne "string"){
-        >> %PSFILE% echo $ln = FindLine $f.FullName $p.Name
-        >> %PSFILE% echo AddErr("Datatype error | File="+$f.Name+" | Path=parameters."+ $p.Name +".type | Line="+$ln+" | Found="+$p.Value.type+" | Expected=string")
-        >> %PSFILE% echo }
+	
+	>> %PSFILE% echo if($p.Value.type -notin $validTypes){
+	>> %PSFILE% echo $ln = FindLine $f.FullName $p.Name
+	>> %PSFILE% echo AddErr("Datatype error | File="+$f.Name+" | Parameter="+$p.Name+" | Line="+$ln+" | Found="+$p.Value.type+" | Expected=valid datatype")
+	>> %PSFILE% echo }
+	
 
         >> %PSFILE% echo if($p.Name -like "*location*" -and $p.Value.defaultValue){
         >> %PSFILE% echo if($allowed -notcontains $p.Value.defaultValue){
@@ -176,6 +177,7 @@ Pipeline stopped immediately.
         '''
     }
 }
+
        
         /* =====================================================
            4. Storage Account Template Validation
