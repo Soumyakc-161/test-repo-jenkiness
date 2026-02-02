@@ -4,7 +4,7 @@
     "parameters": {
         "storageAccounts_cftproject_name": {
             "defaultValue": "cftproject",
-            "type": "float"
+            "type": "string"
         },
         "workspaces_cft_databricks_name": {
             "defaultValue": "cft_databricks",

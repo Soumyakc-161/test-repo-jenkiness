@@ -92,81 +92,92 @@ Pipeline stopped immediately.
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
-       stage('Validate RG - Basics') {
+      
+        stage('Validate Resource Group ARM Template') {
     steps {
         bat '''
-        echo Validating RG Basics...
+        @echo off
+        echo =====================================
+        echo RG ARM VALIDATION STARTED
+        echo =====================================
 
-        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
-        set PSFILE=rg-basic.ps1
+        powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+        "$ErrorActionPreference='Stop'; ^
+        Set-StrictMode -Version Latest; ^
 
-        if not exist %FILE% (
-            echo rg.json missing
-            exit /b 1
-        )
+        $file = 'azure-adf-e2e\\arm-templates\\resource-group\\rg.json'; ^
+        if(!(Test-Path $file)){ throw 'rg.json not found -> ' + $file }; ^
 
-        echo $ErrorActionPreference='Stop' > %PSFILE%
-        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
+        Write-Host 'Checking file:' $file; ^
 
-        echo $expected=@{ >> %PSFILE%
-        echo 'storageAccounts_cftproject_name'='cftproject'; >> %PSFILE%
-        echo 'workspaces_cft_databricks_name'='cft_databricks'; >> %PSFILE%
-        echo 'virtualNetworks_CFT_Virtual_Network_name'='CFT_Virtual_Network'; >> %PSFILE%
-        echo 'accessConnectors_adb_access_connector_name'='adb-access-connector'; >> %PSFILE%
-        echo 'networkSecurityGroups_databricksnsgmuuuizl5pkmwk_name'='databricksnsgmuuuizl5pkmwk'; >> %PSFILE%
-        echo 'userAssignedIdentities_databricks_uami_autoloader_name'='databricks-uami-autoloader' >> %PSFILE%
-        echo } >> %PSFILE%
+        # JSON SYNTAX CHECK
+        try { ^
+            $json = Get-Content $file -Raw | ConvertFrom-Json ^
+        } catch { ^
+            Write-Host 'JSON SYNTAX ERROR:'; ^
+            Write-Host $_.Exception.Message; ^
+            throw ^
+        }; ^
 
-        echo foreach ($k in $expected.Keys){ >> %PSFILE%
-        echo if(-not $json.parameters.$k){Write-Host "Missing parameter: $k"; exit 1} >> %PSFILE%
-        echo if($json.parameters.$k.defaultValue -ne $expected[$k]){Write-Host "Wrong value for $k"; exit 1} >> %PSFILE%
-        echo } >> %PSFILE%
+        # ARM SCHEMA CHECK
+        if(-not $json.'$schema' -or $json.'$schema' -notlike '*deploymentTemplate*'){ ^
+            throw 'Invalid or missing ARM schema in rg.json' ^
+        }; ^
 
-        echo Write-Host 'RG Basic validation PASSED' >> %PSFILE%
+        # PARAMETERS BLOCK CHECK
+        if(-not $json.parameters){ ^
+            throw 'parameters block missing in rg.json' ^
+        }; ^
 
-        powershell -ExecutionPolicy Bypass -File %PSFILE%
+        # REQUIRED PARAMETERS
+        $required = @('subscriptionId','resourceGroupName','location'); ^
+        foreach($p in $required){ ^
+            if(-not $json.parameters.$p){ ^
+                throw ('Missing parameter -> ' + $p) ^
+            }; ^
+            if(-not $json.parameters.$p.type){ ^
+                throw ('Datatype missing for -> ' + $p) ^
+            }; ^
+        }; ^
+
+        # REGION VALIDATION
+        $loc = $json.parameters.location.defaultValue; ^
+        if([string]::IsNullOrWhiteSpace($loc)){ ^
+            throw 'Region/location is EMPTY' ^
+        }; ^
+
+        $allowed = @('eastus','eastus2','westus','westeurope','centralindia','southindia','southeastasia'); ^
+        if($allowed -notcontains $loc){ ^
+            throw ('Invalid region spelling -> ' + $loc) ^
+        }; ^
+
+        # RESOURCES BLOCK CHECK
+        if(-not $json.resources){ ^
+            throw 'resources[] section missing' ^
+        }; ^
+
+        foreach($r in $json.resources){ ^
+            if(-not $r.type){ throw 'Resource type missing' }; ^
+            if(-not $r.name){ throw 'Resource name missing' }; ^
+        }; ^
+
+        # DUPLICATE RESOURCE NAMES
+        $names=@(); ^
+        foreach($r in $json.resources){ ^
+            if($names -contains $r.name){ ^
+                throw ('Duplicate resource name -> ' + $r.name) ^
+            }; ^
+            $names += $r.name; ^
+        }; ^
+
+        Write-Host ''; ^
+        Write-Host '===================================='; ^
+        Write-Host 'RG TEMPLATE VALIDATION PASSED'; ^
+        Write-Host '===================================='; ^
+        "
         '''
     }
 }
-
-stage('Validate RG - Resources') {
-    steps {
-        bat '''
-        echo Validating RG Resources...
-
-        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
-        set PSFILE=rg-res.ps1
-
-        echo $ErrorActionPreference='Stop' > %PSFILE%
-        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
-
-        echo $types=@( >> %PSFILE%
-        echo 'Microsoft.Databricks/accessConnectors', >> %PSFILE%
-        echo 'Microsoft.ManagedIdentity/userAssignedIdentities', >> %PSFILE%
-        echo 'Microsoft.Network/networkSecurityGroups', >> %PSFILE%
-        echo 'Microsoft.Network/networkSecurityGroups/securityRules', >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts', >> %PSFILE%
-        echo 'Microsoft.Databricks/workspaces', >> %PSFILE%
-        echo 'Microsoft.Network/virtualNetworks', >> %PSFILE%
-        echo 'Microsoft.Network/virtualNetworks/subnets', >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts/blobServices', >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts/fileServices', >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts/queueServices', >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts/tableServices', >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts/blobServices/containers' >> %PSFILE%
-        echo ) >> %PSFILE%
-
-        echo foreach ($t in $types){ >> %PSFILE%
-        echo if(-not ($json.resources ^| Where-Object {$_.type -eq $t})){Write-Host "Missing resource: $t"; exit 1} >> %PSFILE%
-        echo } >> %PSFILE%
-
-        echo Write-Host 'RG Resource validation PASSED' >> %PSFILE%
-
-        powershell -ExecutionPolicy Bypass -File %PSFILE%
-        '''
-    }
-}
-
 
 
         /* =====================================================
