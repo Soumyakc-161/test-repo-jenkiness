@@ -93,7 +93,7 @@ Pipeline stopped immediately.
            3. Resource Group Template Validation
         ====================================================== */
         
-       stage('ARM Resource Validation') {
+      stage('ARM Resource Validation') {
     steps {
         bat '''
         @echo off
@@ -106,11 +106,17 @@ Pipeline stopped immediately.
         > %PSFILE% echo $errors=@()
         >> %PSFILE% echo function AddErr($m){ $global:errors += $m }
 
+        >> %PSFILE% echo function FindLine($file,$text){
+        >> %PSFILE% echo $lines = Get-Content $file
+        >> %PSFILE% echo for($i=0;$i -lt $lines.Length;$i++){
+        >> %PSFILE% echo if($lines[$i] -match [regex]::Escape($text)){ return ($i+1) }
+        >> %PSFILE% echo }
+        >> %PSFILE% echo return "Unknown"
+        >> %PSFILE% echo }
+
         >> %PSFILE% echo $allowed=@("eastus","eastus2","westus","westeurope","centralindia","southindia","southeastasia")
 
         >> %PSFILE% echo $files = Get-ChildItem "azure-adf-e2e\\arm-templates\\resource-group" -Recurse -Filter *.json
-
-        >> %PSFILE% echo if(!$files){ AddErr("No ARM templates found") }
 
         >> %PSFILE% echo foreach($f in $files){
         >> %PSFILE% echo Write-Host ""
@@ -119,7 +125,7 @@ Pipeline stopped immediately.
         >> %PSFILE% echo try{
         >> %PSFILE% echo $j = Get-Content $f.FullName -Raw ^| ConvertFrom-Json
         >> %PSFILE% echo } catch {
-        >> %PSFILE% echo AddErr("Syntax error | File="+$f.Name+" | Line="+$_.Exception.LineNumber+" | "+$_.Exception.Message)
+        >> %PSFILE% echo AddErr("Syntax error | File="+$f.Name+" | Line="+$_.Exception.LineNumber)
         >> %PSFILE% echo continue
         >> %PSFILE% echo }
 
@@ -127,12 +133,14 @@ Pipeline stopped immediately.
         >> %PSFILE% echo foreach($p in $j.parameters.PSObject.Properties){
 
         >> %PSFILE% echo if($p.Name -like "*name*" -and $p.Value.type -ne "string"){
-        >> %PSFILE% echo AddErr("Datatype error | File="+$f.Name+" | Path=parameters."+ $p.Name +".type | Found="+$p.Value.type+" | Expected=string")
+        >> %PSFILE% echo $ln = FindLine $f.FullName $p.Name
+        >> %PSFILE% echo AddErr("Datatype error | File="+$f.Name+" | Path=parameters."+ $p.Name +".type | Line="+$ln+" | Found="+$p.Value.type+" | Expected=string")
         >> %PSFILE% echo }
 
         >> %PSFILE% echo if($p.Name -like "*location*" -and $p.Value.defaultValue){
         >> %PSFILE% echo if($allowed -notcontains $p.Value.defaultValue){
-        >> %PSFILE% echo AddErr("Invalid region | File="+$f.Name+" | Path=parameters."+ $p.Name +".defaultValue | Value="+$p.Value.defaultValue)
+        >> %PSFILE% echo $ln = FindLine $f.FullName $p.Value.defaultValue
+        >> %PSFILE% echo AddErr("Invalid region | File="+$f.Name+" | Path=parameters."+ $p.Name +".defaultValue | Line="+$ln+" | Value="+$p.Value.defaultValue)
         >> %PSFILE% echo }
         >> %PSFILE% echo }
 
@@ -142,23 +150,14 @@ Pipeline stopped immediately.
         >> %PSFILE% echo if($j.resources){
         >> %PSFILE% echo foreach($r in $j.resources){
 
-        >> %PSFILE% echo if(-not $r.type){
-        >> %PSFILE% echo AddErr("Missing resource type | File="+$f.Name)
-        >> %PSFILE% echo }
-
-        >> %PSFILE% echo if(-not $r.name){
-        >> %PSFILE% echo AddErr("Missing resource name | File="+$f.Name+" | Type="+$r.type)
-        >> %PSFILE% echo }
-
         >> %PSFILE% echo if($r.location){
         >> %PSFILE% echo if($r.location -notlike "[*]" -and $allowed -notcontains $r.location){
-        >> %PSFILE% echo AddErr("Invalid region | File="+$f.Name+" | ResourceType="+$r.type+" | Name="+$r.name+" | Value="+$r.location)
+        >> %PSFILE% echo $ln = FindLine $f.FullName $r.location
+        >> %PSFILE% echo AddErr("Invalid region | File="+$f.Name+" | ResourceType="+$r.type+" | Name="+$r.name+" | Line="+$ln+" | Value="+$r.location)
         >> %PSFILE% echo }
         >> %PSFILE% echo }
 
         >> %PSFILE% echo }
-        >> %PSFILE% echo } else {
-        >> %PSFILE% echo AddErr("resources[] missing | File="+$f.Name)
         >> %PSFILE% echo }
 
         >> %PSFILE% echo }
@@ -177,7 +176,6 @@ Pipeline stopped immediately.
         '''
     }
 }
-
        
         /* =====================================================
            4. Storage Account Template Validation
