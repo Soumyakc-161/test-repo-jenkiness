@@ -6,7 +6,7 @@
             "defaultValue": "cftproject",
             "type": "String"
         }
-    // },
+    },
     "variables": {},
     "resources": [
         {
