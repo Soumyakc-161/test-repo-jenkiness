@@ -10,7 +10,7 @@
     "variables": {},
     "resources": [
         {
-            "type": "Microsoft.Storage/storageAccounts",
+            "type": "Microsoft.Storage/storageAccount",
             "apiVersion": "2025-01-01",
             "name": "[parameters('storageAccounts_cftproject_name')]",
             "location": "southindia",
