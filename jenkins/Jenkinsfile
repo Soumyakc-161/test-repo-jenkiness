@@ -106,54 +106,72 @@ Pipeline stopped immediately.
 
         >> %PSFILE% echo function Fail($msg){ Write-Host ""; Write-Host "ERROR:" $msg; exit 1 }
 
+        >> %PSFILE% echo function FindLine($text,$key){
+        >> %PSFILE% echo $i=1
+        >> %PSFILE% echo foreach($l in $text -split "`n"){ if($l -match $key){ return $i }; $i++ }
+        >> %PSFILE% echo return "Unknown"
+        >> %PSFILE% echo }
+
         >> %PSFILE% echo $file="azure-adf-e2e\\arm-templates\\resource-group\\rg.json"
         >> %PSFILE% echo if(!(Test-Path $file)){ Fail "File not found -> $file" }
 
         >> %PSFILE% echo Write-Host "Checking file:" $file
+        >> %PSFILE% echo $raw = Get-Content $file -Raw
 
         >> %PSFILE% echo try {
-        >> %PSFILE% echo   $raw = Get-Content $file -Raw
         >> %PSFILE% echo   $json = $raw ^| ConvertFrom-Json
         >> %PSFILE% echo } catch {
-        >> %PSFILE% echo   Fail ("JSON syntax error in file -> " + $file + " | " + $_.Exception.Message)
+        >> %PSFILE% echo   Fail ("JSON syntax error | Line -> " + $_.Exception.LineNumber + " | " + $_.Exception.Message)
         >> %PSFILE% echo }
 
-        >> %PSFILE% echo if(-not $json.parameters){ Fail "parameters block missing in rg.json" }
+        >> %PSFILE% echo if(-not $json.parameters){ Fail "parameters block missing" }
 
-        >> %PSFILE% echo function CheckParam($name){
-        >> %PSFILE% echo   if(-not $json.parameters.PSObject.Properties[$name]){
-        >> %PSFILE% echo     Fail ("Missing parameter -> parameters." + $name + " | File -> rg.json")
-        >> %PSFILE% echo   }
-        >> %PSFILE% echo   if(-not $json.parameters.$name.type){
-        >> %PSFILE% echo     Fail ("Datatype missing -> parameters." + $name)
-        >> %PSFILE% echo   }
+        >> %PSFILE% echo function CheckRequired($name){
+        >> %PSFILE% echo if(-not $json.parameters.PSObject.Properties[$name]){
+        >> %PSFILE% echo $ln=FindLine $raw $name
+        >> %PSFILE% echo Fail ("Missing parameter -> " + $name + " | Line -> " + $ln)
+        >> %PSFILE% echo }
+        >> %PSFILE% echo if(-not $json.parameters.$name.type){
+        >> %PSFILE% echo Fail ("Datatype missing -> " + $name)
+        >> %PSFILE% echo }
         >> %PSFILE% echo }
 
-        >> %PSFILE% echo CheckParam "subscriptionId"
-        >> %PSFILE% echo CheckParam "resourceGroupName"
-        >> %PSFILE% echo CheckParam "location"
+        # REQUIRED FOR RG DEPLOYMENT
+        >> %PSFILE% echo CheckRequired "resourceGroupName"
+        >> %PSFILE% echo CheckRequired "location"
 
-        >> %PSFILE% echo $sub = $json.parameters.subscriptionId.defaultValue
-        >> %PSFILE% echo if(-not $sub){ Fail "subscriptionId defaultValue missing" }
-        >> %PSFILE% echo if($sub -notmatch "^[0-9a-fA-F-]{36}$"){ Fail "subscriptionId format invalid -> $sub" }
+        # OPTIONAL subscriptionId — validate format only if present
+        >> %PSFILE% echo if($json.parameters.PSObject.Properties["subscriptionId"]){
+        >> %PSFILE% echo $sub=$json.parameters.subscriptionId.defaultValue
+        >> %PSFILE% echo if($sub -and $sub -notmatch "^[0-9a-fA-F-]{36}$"){
+        >> %PSFILE% echo Fail ("Invalid subscriptionId format -> " + $sub)
+        >> %PSFILE% echo }
+        >> %PSFILE% echo }
 
-        >> %PSFILE% echo $rg = $json.parameters.resourceGroupName.defaultValue
-        >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($rg)){ Fail "resourceGroupName empty" }
+        >> %PSFILE% echo $rg=$json.parameters.resourceGroupName.defaultValue
+        >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($rg)){
+        >> %PSFILE% echo Fail "resourceGroupName empty"
+        >> %PSFILE% echo }
 
-        >> %PSFILE% echo $loc = $json.parameters.location.defaultValue
-        >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($loc)){ Fail "location/region empty" }
+        >> %PSFILE% echo $loc=$json.parameters.location.defaultValue
+        >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($loc)){
+        >> %PSFILE% echo $ln=FindLine $raw "location"
+        >> %PSFILE% echo Fail ("Region empty | Line -> " + $ln)
+        >> %PSFILE% echo }
 
         >> %PSFILE% echo $allowed=@("eastus","eastus2","westus","westeurope","centralindia","southindia","southeastasia")
-        >> %PSFILE% echo if($allowed -notcontains $loc){ Fail ("Invalid region spelling -> " + $loc) }
+        >> %PSFILE% echo if($allowed -notcontains $loc){
+        >> %PSFILE% echo Fail ("Invalid region spelling -> " + $loc)
+        >> %PSFILE% echo }
 
         >> %PSFILE% echo if(-not $json.resources){ Fail "resources[] block missing" }
 
         >> %PSFILE% echo $names=@()
         >> %PSFILE% echo foreach($r in $json.resources){
-        >> %PSFILE% echo   if(-not $r.type){ Fail "Resource type missing" }
-        >> %PSFILE% echo   if(-not $r.name){ Fail "Resource name missing" }
-        >> %PSFILE% echo   if($names -contains $r.name){ Fail ("Duplicate resource name -> " + $r.name) }
-        >> %PSFILE% echo   $names += $r.name
+        >> %PSFILE% echo if(-not $r.type){ Fail "Resource type missing" }
+        >> %PSFILE% echo if(-not $r.name){ Fail "Resource name missing" }
+        >> %PSFILE% echo if($names -contains $r.name){ Fail ("Duplicate resource -> " + $r.name) }
+        >> %PSFILE% echo $names += $r.name
         >> %PSFILE% echo }
 
         >> %PSFILE% echo Write-Host ""
