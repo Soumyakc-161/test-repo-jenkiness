@@ -179,13 +179,14 @@ Pipeline stopped immediately.
         >> %PSFILE% echo if($j.resources){
         >> %PSFILE% echo foreach($r in $j.resources){
 
-        >> %PSFILE% echo if($r.location){
-        >> %PSFILE% echo # region accepted — no logging
+        >> %PSFILE% echo if(-not $r.location){
+        >> %PSFILE% echo $ln = FindLine $f.FullName '"location"'
+        >> %PSFILE% echo AddErr("Missing location | File="+$f.Name+" | ResourceType="+$r.type+" | Line="+$ln)
         >> %PSFILE% echo }
 
+        >> %PSFILE% echo }
+        >> %PSFILE% echo }
 
-        >> %PSFILE% echo }
-        >> %PSFILE% echo }
 
         >> %PSFILE% echo }  
 
