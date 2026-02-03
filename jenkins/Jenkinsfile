@@ -92,52 +92,105 @@ Pipeline stopped immediately.
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
-        stage('Validate RG Name + Region') {
-  steps {
-    bat '''
-    @echo off
-    set PS=rg_check.ps1
+        stage('Resource Group Validation') {
+    steps {
+        bat '''
+        @echo off
+        echo =====================================
+        echo RESOURCE GROUP VALIDATION 
+        echo =====================================
 
-    > %PS% echo $errs=@()
-    >> %PS% echo function AddErr($line,$where,$msg){
-    >> %PS% echo  $errs += "Error: Line=$line | Where=$where | File=rg.json | $msg"
-    >> %PS% echo }
+        set PSFILE=arm_validate.ps1
 
-    >> %PS% echo function FindLine($text){
-    >> %PS% echo $i=1; Get-Content arm-templates\\resource-group\\rg.json ^| %%{
-    >> %PS% echo if($_ -match [regex]::Escape($text)){return $i}; $i++ }
-    >> %PS% echo }
+        > %PSFILE% echo $errors=@()
+        >> %PSFILE% echo function AddErr($m){ $global:errors += $m }
 
-    >> %PS% echo $f="arm-templates\\resource-group\\rg.json"
 
-    >> %PS% echo try{$j=Get-Content $f -Raw ^| ConvertFrom-Json}
-    >> %PS% echo catch{ AddErr $_.Exception.LineNumber "JSON" "Syntax error"; exit 1 }
+      >> %PSFILE% echo function FindLine($file,$text){
+        >> %PSFILE% echo $n=0
+        >> %PSFILE% echo Get-Content $file ^| ForEach-Object {
+        >> %PSFILE% echo $n++
+        >> %PSFILE% echo if($_ -match [regex]::Escape($text)){ return $n }
+        >> %PSFILE% echo }
+        >> %PSFILE% echo return -1
+        >> %PSFILE% echo }
 
-    >> %PS% echo if(!$j.parameters){
-    >> %PS% echo AddErr 1 "Template" "parameters block missing"
-    >> %PS% echo } else {
 
-    >> %PS% echo if(!$j.parameters.resourceGroupName){
-    >> %PS% echo AddErr (FindLine "resourceGroupName") "Parameter" "RG name missing"
-    >> %PS% echo } elseif([string]::IsNullOrWhiteSpace($j.parameters.resourceGroupName.defaultValue)){
-    >> %PS% echo AddErr (FindLine "resourceGroupName") "Parameter" "RG name empty"
-    >> %PS% echo }
+        >> %PSFILE% echo $files = Get-ChildItem "azure-adf-e2e\\arm-templates\\resource-group" -Recurse -Filter *.json
 
-    >> %PS% echo if(!$j.parameters.location){
-    >> %PS% echo AddErr (FindLine "location") "Parameter" "location missing"
-    >> %PS% echo } elseif([string]::IsNullOrWhiteSpace($j.parameters.location.defaultValue)){
-    >> %PS% echo AddErr (FindLine "location") "Parameter" "location empty"
-    >> %PS% echo }
+        >> %PSFILE% echo foreach($f in $files){
+        >> %PSFILE% echo Write-Host ""
+        >> %PSFILE% echo Write-Host "Checked file:" $f.Name
 
-    >> %PS% echo }
+        >> %PSFILE% echo try{
+        >> %PSFILE% echo $j = Get-Content $f.FullName -Raw ^| ConvertFrom-Json
+        >> %PSFILE% echo } catch {
+        >> %PSFILE% echo AddErr("Syntax error | File="+$f.Name+" | Line="+$_.Exception.LineNumber)
+        >> %PSFILE% echo continue
+        >> %PSFILE% echo }
 
-    >> %PS% echo if($errs.Count -gt 0){
-    >> %PS% echo $errs ^| %%{echo $_}; exit 1
-    >> %PS% echo } else { echo RG NAME + REGION VALIDATION PASSED }
+        >> %PSFILE% echo if($j.parameters){
+        >> %PSFILE% echo foreach($p in $j.parameters.PSObject.Properties){
 
-    powershell -ExecutionPolicy Bypass -File %PS%
-    '''
-  }
+        >> %PSFILE% echo $validTypes=@("string","int","bool","array","object","securestring","secureobject")
+        >> %PSFILE% echo $declType = $null
+        >> %PSFILE% echo try { $declType = $p.Value.type.ToLower() } catch {}
+        >> %PSFILE% echo if($declType -and $declType -notin $validTypes){
+        >> %PSFILE% echo $ln = FindLine $f.FullName $p.Name
+        >> %PSFILE% echo AddErr("Invalid datatype | File="+$f.Name+" | Parameter="+$p.Name+" | Line="+$ln+" | Found="+$p.Value.type)
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo if($p.Value.PSObject.Properties.Name -contains "defaultValue"){
+        >> %PSFILE% echo $declType = $p.Value.type.ToLower()
+        >> %PSFILE% echo $defVal = $p.Value.defaultValue
+        >> %PSFILE% echo $typeOk = $true
+        >> %PSFILE% echo if($declType -notin $validTypes){ $typeOk = $false }
+        >> %PSFILE% echo else {
+        >> %PSFILE% echo switch ($declType) {
+        >> %PSFILE% echo "string" { if($defVal -isnot [string]) { $typeOk = $false } }
+        >> %PSFILE% echo "int" { if($defVal -isnot [int]) { $typeOk = $false } }
+        >> %PSFILE% echo "bool" { if($defVal -isnot [bool]) { $typeOk = $false } }
+        >> %PSFILE% echo "array" { if($defVal -isnot [array]) { $typeOk = $false } }
+        >> %PSFILE% echo "object" { if($defVal -isnot [hashtable]) { $typeOk = $false } }
+        >> %PSFILE% echo }
+        >> %PSFILE% echo }
+        >> %PSFILE% echo if(-not $typeOk){
+        >> %PSFILE% echo $ln = FindLine $f.FullName $p.Name
+        >> %PSFILE% echo AddErr("DefaultValue type mismatch | File="+$f.Name+" | Parameter="+$p.Name+" | Line="+$ln+" | Declared="+$declType+" | DefaultValueType="+$defVal.GetType().Name)
+        >> %PSFILE% echo }
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo }
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo if($j.resources){
+        >> %PSFILE% echo foreach($r in $j.resources){
+        >> %PSFILE% echo $type = $r.type
+        >> %PSFILE% echo $slashCount = ($type -split "/").Count
+        >> %PSFILE% echo if($slashCount -le 2){
+        >> %PSFILE% echo if(-not $r.location){
+        >> %PSFILE% echo $ln = FindLine $f.FullName $r.type
+        >> %PSFILE% echo AddErr("Missing location | File="+$f.Name+" | ResourceType="+$r.type+" | Name="+$r.name+" | Line="+$ln)
+        >> %PSFILE% echo }
+        >> %PSFILE% echo }
+        >> %PSFILE% echo }
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo if($errors.Count -gt 0){
+        >> %PSFILE% echo Write-Host ""
+        >> %PSFILE% echo Write-Host "===== VALIDATION ERRORS ====="
+        >> %PSFILE% echo $errors ^| %% { Write-Host $_ }
+        >> %PSFILE% echo exit 1
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo Write-Host ""
+        >> %PSFILE% echo Write-Host "RESOURCE GROUP VALID"
+
+        powershell -ExecutionPolicy Bypass -File %PSFILE%
+        '''
+    }
 }
            
         /* =====================================================
