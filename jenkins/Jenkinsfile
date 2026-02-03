@@ -93,7 +93,7 @@ Pipeline stopped immediately.
            3. Resource Group Template Validation
         ====================================================== */
         
-      stage('ARM Resource Groups Validation') {
+     stage('ARM Resource Groups Validation') {
     steps {
         bat '''
         @echo off
@@ -131,8 +131,16 @@ Pipeline stopped immediately.
 
         >> %PSFILE% echo if($j.parameters){
         >> %PSFILE% echo foreach($p in $j.parameters.PSObject.Properties){
-	
-	    >> %PSFILE% echo if($p.Value.PSObject.Properties.Name -contains "defaultValue"){
+
+        :: ✅ ADDED BLOCK — datatype name validation
+        >> %PSFILE% echo $validTypes=@("string","int","bool","array","object","securestring","secureobject")
+        >> %PSFILE% echo if(($p.Value.type).ToLower() -notin $validTypes){
+        >> %PSFILE% echo $ln = FindLine $f.FullName $p.Name
+        >> %PSFILE% echo AddErr("Invalid datatype | File="+$f.Name+" | Parameter="+$p.Name+" | Line="+$ln+" | Found="+$p.Value.type)
+        >> %PSFILE% echo continue
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo if($p.Value.PSObject.Properties.Name -contains "defaultValue"){
         >> %PSFILE% echo $declType = $p.Value.type.ToLower()
         >> %PSFILE% echo $defVal = $p.Value.defaultValue
         >> %PSFILE% echo $typeOk = $true
@@ -148,7 +156,6 @@ Pipeline stopped immediately.
         >> %PSFILE% echo AddErr("DefaultValue type mismatch | File="+$f.Name+" | Parameter="+$p.Name+" | Line="+$ln+" | Declared="+$declType+" | DefaultValueType="+$defVal.GetType().Name)
         >> %PSFILE% echo }
         >> %PSFILE% echo }
-
 
         >> %PSFILE% echo if($p.Name -like "*location*" -and $p.Value.defaultValue){
         >> %PSFILE% echo if($allowed -notcontains $p.Value.defaultValue){
@@ -193,7 +200,6 @@ Pipeline stopped immediately.
         >> %PSFILE% echo Write-Host "Validation Passed"
         >> %PSFILE% echo exit 0
         >> %PSFILE% echo }
-
 
         powershell -ExecutionPolicy Bypass -File %PSFILE%
         '''

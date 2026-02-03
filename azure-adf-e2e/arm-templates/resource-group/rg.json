@@ -16,7 +16,7 @@
         },
         "accessConnectors_adb_access_connector_name": {
             "defaultValue": "adb-access-connector",
-            "type": "String"
+            "type": "kk"
         },
         "networkSecurityGroups_databricksnsgmuuuizl5pkmwk_name": {
             "defaultValue": "databricksnsgmuuuizl5pkmwk",
