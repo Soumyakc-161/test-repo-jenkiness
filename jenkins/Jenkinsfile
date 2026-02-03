@@ -117,9 +117,7 @@ Pipeline stopped immediately.
 
         >> %PSFILE% echo $files = Get-ChildItem "azure-adf-e2e\\arm-templates" -Recurse -Filter *.json
 
-        >> %PSFILE% echo foreach($f in $files){
-        >> %PSFILE% echo Write-Host ""
-        >> %PSFILE% echo Write-Host "Checked file:" $f.Name
+        
 
         >> %PSFILE% echo try{
         >> %PSFILE% echo $j = Get-Content $f.FullName -Raw ^| ConvertFrom-Json
