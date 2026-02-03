@@ -179,16 +179,22 @@ Pipeline stopped immediately.
         >> %PSFILE% echo if($j.resources){
         >> %PSFILE% echo foreach($r in $j.resources){
 
+        :: only validate top-level resources (no parent)
+        >> %PSFILE% echo if(-not $r.dependsOn){
+
         >> %PSFILE% echo if(-not $r.location){
         >> %PSFILE% echo $ln = FindLine $f.FullName '"location"'
         >> %PSFILE% echo AddErr("Missing location | File="+$f.Name+" | ResourceType="+$r.type+" | Line="+$ln)
         >> %PSFILE% echo }
 
         >> %PSFILE% echo }
+
+        >> %PSFILE% echo }
         >> %PSFILE% echo }
 
 
-        >> %PSFILE% echo }  
+
+          
 
         >> %PSFILE% echo if($errors.Count -gt 0){
         >> %PSFILE% echo Write-Host ""
