@@ -93,7 +93,7 @@ Pipeline stopped immediately.
            3. Resource Group Template Validation
         ====================================================== */
         
-     stage('Resourc Group Validation') {
+     stage('Resource Group Validation') {
     steps {
         bat '''
         @echo off
