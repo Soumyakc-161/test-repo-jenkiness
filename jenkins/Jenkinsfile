@@ -107,13 +107,16 @@ Pipeline stopped immediately.
         >> %PSFILE% echo function AddErr($m){ $global:errors += $m }
 
 
-        >> %PSFILE% echo function FindLine($file,$text){
-        >> %PSFILE% echo $lines = Get-Content $file
-        >> %PSFILE% echo for($i=0;$i -lt $lines.Length;$i++){
-        >> %PSFILE% echo if($lines[$i].Contains($text)){ return ($i+1) }
+      >> %PSFILE% echo function FindLine($file,$text){
+        >> %PSFILE% echo $n=0
+        >> %PSFILE% echo Get-Content $file ^| ForEach-Object {
+        >> %PSFILE% echo $n++
+        >> %PSFILE% echo if($_ -match [regex]::Escape($text)){ return $n }
         >> %PSFILE% echo }
         >> %PSFILE% echo return -1
         >> %PSFILE% echo }
+
+
 
 
         >> %PSFILE% echo $files = Get-ChildItem "azure-adf-e2e\\arm-templates\\resource-group" -Recurse -Filter *.json
