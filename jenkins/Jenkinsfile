@@ -93,44 +93,61 @@ Pipeline stopped immediately.
            3. Resource Group Template Validation
         ====================================================== */
         
-  stage('Validate Names Format Only') {
-    steps {
-        bat '''
-        echo Creating PowerShell validator...
+  stage('ARM Static Validation') {
+steps {
+bat '''
+set PSFILE=arm_check.ps1
 
-        set PSFILE=validate_names.ps1
+> %PSFILE% echo $ErrorActionPreference = "Stop"
+>> %PSFILE% echo Write-Host "Scanning ARM templates..."
+>> %PSFILE% echo $files = Get-ChildItem -Recurse -Filter *.json
 
-        > %PSFILE% echo $ErrorActionPreference = "Stop"
-        >> %PSFILE% echo $file = "azure-adf-e2e\\arm-templates\\resource-group\\rg.json"
-        >> %PSFILE% echo if (!(Test-Path $file)) { Write-Error "File not found: $file"; exit 1 }
-        >> %PSFILE% echo try {
-        >> %PSFILE% echo   $raw = Get-Content $file -Raw
-        >> %PSFILE% echo   $json = $raw ^| ConvertFrom-Json
-        >> %PSFILE% echo } catch {
-        >> %PSFILE% echo   Write-Error "JSON parse error in $file at line $($_.InvocationInfo.ScriptLineNumber)"
-        >> %PSFILE% echo   exit 1
-        >> %PSFILE% echo }
+>> %PSFILE% echo foreach ($f in $files) {
+>> %PSFILE% echo   Write-Host "Checking file: $($f.FullName)"
+>> %PSFILE% echo   try {
+>> %PSFILE% echo     $raw = Get-Content $f.FullName -Raw
+>> %PSFILE% echo     $json = $raw ^| ConvertFrom-Json
+>> %PSFILE% echo   } catch {
+>> %PSFILE% echo     Write-Error "SYNTAX ERROR | File=$($f.Name) | Line=$($_.InvocationInfo.ScriptLineNumber) | $($_.Exception.Message)"
+>> %PSFILE% echo     exit 1
+>> %PSFILE% echo   }
 
-        >> %PSFILE% echo $pattern = '^[a-zA-Z0-9._()-]{1,90}$'
+>> %PSFILE% echo   if ($json.resources -eq $null) {
+>> %PSFILE% echo     Write-Error "MISSING resources block | File=$($f.Name)"
+>> %PSFILE% echo     exit 1
+>> %PSFILE% echo   }
 
-        >> %PSFILE% echo foreach ($p in $json.parameters.PSObject.Properties) {
-        >> %PSFILE% echo   $val = $p.Value.defaultValue
-        >> %PSFILE% echo   if ($val -and ($val -notmatch $pattern)) {
-        >> %PSFILE% echo     Write-Error "Invalid name format in file=$file parameter=$($p.Name) value=$val"
-        >> %PSFILE% echo     exit 1
-        >> %PSFILE% echo   }
-        >> %PSFILE% echo }
+>> %PSFILE% echo   foreach ($r in $json.resources) {
 
-        >> %PSFILE% echo Write-Host "All names valid in $file"
+>> %PSFILE% echo     if (-not $r.type) {
+>> %PSFILE% echo       Write-Error "Missing resource type | File=$($f.Name)"
+>> %PSFILE% echo       exit 1
+>> %PSFILE% echo     }
 
-        powershell -ExecutionPolicy Bypass -File %PSFILE%
-        '''
-    }
+>> %PSFILE% echo     if (-not $r.name) {
+>> %PSFILE% echo       Write-Error "Missing resource name | File=$($f.Name)"
+>> %PSFILE% echo       exit 1
+>> %PSFILE% echo     }
+
+>> %PSFILE% echo     if ($r.location -eq "" -or $r.location -eq $null) {
+>> %PSFILE% echo       Write-Error "EMPTY REGION | Resource=$($r.name) | File=$($f.Name)"
+>> %PSFILE% echo       exit 1
+>> %PSFILE% echo     }
+
+>> %PSFILE% echo     if ($r.location -notmatch '^[a-zA-Z]+') {
+>> %PSFILE% echo       Write-Error "INVALID REGION FORMAT | $($r.location) | File=$($f.Name)"
+>> %PSFILE% echo       exit 1
+>> %PSFILE% echo     }
+
+>> %PSFILE% echo   }
+>> %PSFILE% echo }
+
+>> %PSFILE% echo Write-Host "ALL ARM FILES PASSED STATIC VALIDATION"
+
+powershell -ExecutionPolicy Bypass -File %PSFILE%
+'''
 }
-
-
-
-
+}
        
         /* =====================================================
            4. Storage Account Template Validation
