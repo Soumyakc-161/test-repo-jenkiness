@@ -182,7 +182,7 @@ Pipeline stopped immediately.
         >> %PSFILE% echo $slashCount = ($type -split "/").Count
         >> %PSFILE% echo if($slashCount -le 2){   # only parent resources
         >> %PSFILE% echo if(-not $r.location){
-        >> %PSFILE% echo $ln = FindLine $f.FullName $r.name
+        >> %PSFILE% echo $ln = FindLine $f.FullName "\"location\""
         >> %PSFILE% echo AddErr("Missing location | File="+$f.Name+" | ResourceType="+$r.type+" | Name="+$r.name+" | Line="+$ln)
         >> %PSFILE% echo }
         >> %PSFILE% echo }
