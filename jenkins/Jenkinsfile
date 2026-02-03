@@ -106,6 +106,7 @@ Pipeline stopped immediately.
         > %PSFILE% echo $errors=@()
         >> %PSFILE% echo function AddErr($m){ $global:errors += $m }
 
+
         >> %PSFILE% echo function FindLine($file,$text){
         >> %PSFILE% echo $lines = Get-Content $file
         >> %PSFILE% echo for($i=0;$i -lt $lines.Length;$i++){
