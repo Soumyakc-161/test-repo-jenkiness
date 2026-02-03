@@ -92,74 +92,29 @@ Pipeline stopped immediately.
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
-   stage('ARM Template Strict Validation') {
+        stage('ARM Validate') {
   steps {
     bat '''
     @echo off
-    set PSFILE=arm_strict_validate.ps1
-
-    > %PSFILE% echo $errors=@()
-    >> %PSFILE% echo function AddErr($file,$line,$where,$msg){
-    >> %PSFILE% echo   $errors += "Error ^| File=$file ^| Line=$line ^| Where=$where ^| $msg"
-    >> %PSFILE% echo }
-
-    >> %PSFILE% echo function FindLine($file,$text){
-    >> %PSFILE% echo   $i=1; Get-Content $file ^| %%{
-    >> %PSFILE% echo     if($_ -match [regex]::Escape($text)){ return $i }
-    >> %PSFILE% echo     $i++
-    >> %PSFILE% echo   }; return "?"
-    >> %PSFILE% echo }
-
-    >> %PSFILE% echo $files = Get-ChildItem -Recurse arm-templates -Filter *.json
-
-    >> %PSFILE% echo foreach($f in $files){
-
-    >> %PSFILE% echo try{
-    >> %PSFILE% echo   $j = Get-Content $f.FullName -Raw ^| ConvertFrom-Json
-    >> %PSFILE% echo } catch {
-    >> %PSFILE% echo   AddErr $f.Name $_.Exception.LineNumber "JSON" "Syntax error"
-    >> %PSFILE% echo   continue
-    >> %PSFILE% echo }
-
-    >> %PSFILE% echo if(!$j.resources){
-    >> %PSFILE% echo   AddErr $f.Name 1 "Template" "Missing resources section"
-    >> %PSFILE% echo   continue
-    >> %PSFILE% echo }
-
-    >> %PSFILE% echo foreach($r in $j.resources){
-
-    >> %PSFILE% echo   if(!$r.type){
-    >> %PSFILE% echo     AddErr $f.Name (FindLine $f.FullName '"type"') "Resource" "Missing type"
-    >> %PSFILE% echo   }
-
-    >> %PSFILE% echo   if(!$r.apiVersion){
-    >> %PSFILE% echo     AddErr $f.Name (FindLine $f.FullName '"apiVersion"') $r.type "Missing apiVersion"
-    >> %PSFILE% echo   }
-
-    >> %PSFILE% echo   if(!$r.name){
-    >> %PSFILE% echo     AddErr $f.Name (FindLine $f.FullName '"name"') $r.type "Missing name"
-    >> %PSFILE% echo   }
-
-    >> %PSFILE% echo   if(!$r.location -and $r.type -notmatch "/"){
-    >> %PSFILE% echo     AddErr $f.Name (FindLine $f.FullName $r.type) $r.type "Missing location"
-    >> %PSFILE% echo   }
-
-    >> %PSFILE% echo }
-    >> %PSFILE% echo }
-
-    >> %PSFILE% echo if($errors.Count -gt 0){
-    >> %PSFILE% echo   $errors ^| %%{ Write-Host $_ }
-    >> %PSFILE% echo   exit 1
-    >> %PSFILE% echo } else {
-    >> %PSFILE% echo   Write-Host "ARM STRICT VALIDATION PASSED"
-    >> %PSFILE% echo }
-
-    powershell -ExecutionPolicy Bypass -File %PSFILE%
+    powershell -Command ^
+    "$errs=@(); ^
+    function E($f,$l,$m){$errs+=('Error | File='+$f+' | Line='+$l+' | '+$m)}; ^
+    function L($f,$t){$i=1;gc $f|%{if($_ -match [regex]::Escape($t)){return $i};$i++};'?'}; ^
+    gci arm-templates -r *.json | %{
+      $f=$_.FullName
+      try{$j=gc $f -Raw|ConvertFrom-Json}catch{E $_.Name $_.Exception.LineNumber 'JSON syntax error';return}
+      if(!$j.resources){E $_.Name 1 'Missing resources';return}
+      foreach($r in $j.resources){
+        if(!$r.type){E $_.Name (L $f 'type') 'Missing type'}
+        if(!$r.apiVersion){E $_.Name (L $f 'apiVersion') 'Missing apiVersion'}
+        if(!$r.name){E $_.Name (L $f 'name') 'Missing name'}
+        if(!$r.location){E $_.Name (L $f $r.type) 'Missing location'}
+      }
+    }; ^
+    if($errs){$errs|%{echo $_}; exit 1}else{echo ARM OK}"
     '''
   }
 }
-
-
            
         /* =====================================================
            4. Storage Account Template Validation
