@@ -169,7 +169,6 @@ Pipeline stopped immediately.
 
 
         >> %PSFILE% echo }
-        >> %PSFILE% echo }
 
         >> %PSFILE% echo if($j.resources){
         >> %PSFILE% echo foreach($r in $j.resources){
