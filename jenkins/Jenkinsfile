@@ -141,7 +141,7 @@ Pipeline stopped immediately.
         >> %PSFILE% echo }
 
 
-        >> %PSFILE% echo if($p.Value.PSObject.Properties.Name -contains "defaultValue"){
+       >> %PSFILE% echo if($p.Value.PSObject.Properties.Name -contains "defaultValue"){
         >> %PSFILE% echo $declType = $p.Value.type.ToLower()
         >> %PSFILE% echo $defVal = $p.Value.defaultValue
         >> %PSFILE% echo $typeOk = $true
@@ -151,12 +151,14 @@ Pipeline stopped immediately.
         >> %PSFILE% echo "bool" { if($defVal -isnot [bool]) { $typeOk = $false } }
         >> %PSFILE% echo "array" { if($defVal -isnot [array]) { $typeOk = $false } }
         >> %PSFILE% echo "object" { if($defVal -isnot [hashtable]) { $typeOk = $false } }
+        >> %PSFILE% echo default { $typeOk = $false }
         >> %PSFILE% echo }
         >> %PSFILE% echo if(-not $typeOk){
         >> %PSFILE% echo $ln = FindLine $f.FullName $p.Name
         >> %PSFILE% echo AddErr("DefaultValue type mismatch | File="+$f.Name+" | Parameter="+$p.Name+" | Line="+$ln+" | Declared="+$declType+" | DefaultValueType="+$defVal.GetType().Name)
         >> %PSFILE% echo }
         >> %PSFILE% echo }
+
 
         >> %PSFILE% echo if($p.Name -like "*location*" -and $p.Value.defaultValue){
         >> %PSFILE% echo if($allowed -notcontains $p.Value.defaultValue){
