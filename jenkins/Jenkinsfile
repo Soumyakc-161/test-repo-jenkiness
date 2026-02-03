@@ -121,7 +121,7 @@ Pipeline stopped immediately.
 
         >> %PSFILE% echo foreach($f in $files){
         >> %PSFILE% echo Write-Host ""
-        >> %PSFILE% echo Write-Host "Checking file:" $f.Name
+        >> %PSFILE% echo Write-Host "Checked file:" $f.Name
 
         >> %PSFILE% echo try{
         >> %PSFILE% echo $j = Get-Content $f.FullName -Raw ^| ConvertFrom-Json
@@ -165,8 +165,9 @@ Pipeline stopped immediately.
 
 
         >> %PSFILE% echo if($p.Name -like "*location*" -and $p.Value.defaultValue){
-        >> %PSFILE% echo Write-Host "Location parameter detected:" $p.Value.defaultValue
+        >> %PSFILE% echo # region accepted — no logging
         >> %PSFILE% echo }
+
 
         >> %PSFILE% echo }
         >> %PSFILE% echo }
@@ -175,8 +176,9 @@ Pipeline stopped immediately.
         >> %PSFILE% echo foreach($r in $j.resources){
 
         >> %PSFILE% echo if($r.location){
-        >> %PSFILE% echo Write-Host "Resource location detected:" $r.location
+        >> %PSFILE% echo # region accepted — no logging
         >> %PSFILE% echo }
+
 
         >> %PSFILE% echo }
         >> %PSFILE% echo }
