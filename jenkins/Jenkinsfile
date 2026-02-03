@@ -133,7 +133,9 @@ Pipeline stopped immediately.
 
         :: ADDED BLOCK — datatype name validation
         >> %PSFILE% echo $validTypes=@("string","int","bool","array","object","securestring","secureobject")
-        >> %PSFILE% echo if(($p.Value.type).ToLower() -notin $validTypes){
+        >> %PSFILE% echo $declType = $null
+        >> %PSFILE% echo try { $declType = $p.Value.type.ToLower() } catch {}
+        >> %PSFILE% echo if($declType -and $declType -notin $validTypes){
         >> %PSFILE% echo $ln = FindLine $f.FullName $p.Name
         >> %PSFILE% echo AddErr("Invalid datatype | File="+$f.Name+" | Parameter="+$p.Name+" | Line="+$ln+" | Found="+$p.Value.type)
         >> %PSFILE% echo }
