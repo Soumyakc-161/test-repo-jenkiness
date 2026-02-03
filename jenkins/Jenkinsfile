@@ -93,12 +93,12 @@ Pipeline stopped immediately.
            3. Resource Group Template Validation
         ====================================================== */
         
-     stage('ARM Resource Group Validation') {
+     stage('Resource Group Validation') {
     steps {
         bat '''
         @echo off
         echo =====================================
-        echo ARM RESOURCE VALIDATION STARTED
+        echo RESOURCE GROUP VALIDATION 
         echo =====================================
 
         set PSFILE=arm_validate.ps1
@@ -133,7 +133,7 @@ Pipeline stopped immediately.
         >> %PSFILE% echo if($j.parameters){
         >> %PSFILE% echo foreach($p in $j.parameters.PSObject.Properties){
 
-        :: ✅ ADDED BLOCK — datatype name validation
+        :: ADDED BLOCK — datatype name validation
         >> %PSFILE% echo $validTypes=@("string","int","bool","array","object","securestring","secureobject")
         >> %PSFILE% echo if(($p.Value.type).ToLower() -notin $validTypes){
         >> %PSFILE% echo $ln = FindLine $f.FullName $p.Name
