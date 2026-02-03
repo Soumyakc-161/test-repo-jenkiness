@@ -166,9 +166,11 @@ Pipeline stopped immediately.
 
 
 
-        >> %PSFILE% echo if($p.Name -like "*location*" -and $p.Value.defaultValue){
-        >> %PSFILE% echo # region accepted — no logging
+        >> %PSFILE% echo if(-not $r.location){
+        >> %PSFILE% echo $ln = FindLine $f.FullName $r.type
+        >> %PSFILE% echo AddErr("Missing location | File="+$f.Name+" | ResourceType="+$r.type+" | Line="+$ln)
         >> %PSFILE% echo }
+
 
 
         >> %PSFILE% echo }
