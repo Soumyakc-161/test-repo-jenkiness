@@ -24,7 +24,7 @@
         },
         "userAssignedIdentities_databricks_uami_autoloader_name": {
             "defaultValue": "databricks-uami-autoloader",
-            "type": "Str"
+            "type": "String"
         }
     },
     "variables": {},
@@ -33,7 +33,7 @@
             "type": "Microsoft.Databricks/accessConnectors",
             "apiVersion": "2025-03-01-preview",
             "name": "[parameters('accessConnectors_adb_access_connector_name')]",
-            "location": "",
+            "location": "centralindia",
             "identity": {
                 "type": "SystemAssigned, UserAssigned",
                 "userAssignedIdentities": {
