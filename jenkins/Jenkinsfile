@@ -92,7 +92,7 @@ Pipeline stopped immediately.
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
-        stage('Validate RG Name Only') {
+        stage('Validate RG Name + Region') {
   steps {
     bat '''
     @echo off
@@ -109,27 +109,36 @@ Pipeline stopped immediately.
     >> %PS% echo }
 
     >> %PS% echo $f="arm-templates\\resource-group\\rg.json"
+
     >> %PS% echo try{$j=Get-Content $f -Raw ^| ConvertFrom-Json}
     >> %PS% echo catch{ AddErr $_.Exception.LineNumber "JSON" "Syntax error"; exit 1 }
 
     >> %PS% echo if(!$j.parameters){
     >> %PS% echo AddErr 1 "Template" "parameters block missing"
-    >> %PS% echo } elseif(!$j.parameters.resourceGroupName){
-    >> %PS% echo AddErr (FindLine "parameters") "Parameter" "resourceGroupName missing"
+    >> %PS% echo } else {
+
+    >> %PS% echo if(!$j.parameters.resourceGroupName){
+    >> %PS% echo AddErr (FindLine "resourceGroupName") "Parameter" "RG name missing"
     >> %PS% echo } elseif([string]::IsNullOrWhiteSpace($j.parameters.resourceGroupName.defaultValue)){
-    >> %PS% echo AddErr (FindLine "resourceGroupName") "Parameter" "resourceGroupName empty"
+    >> %PS% echo AddErr (FindLine "resourceGroupName") "Parameter" "RG name empty"
+    >> %PS% echo }
+
+    >> %PS% echo if(!$j.parameters.location){
+    >> %PS% echo AddErr (FindLine "location") "Parameter" "location missing"
+    >> %PS% echo } elseif([string]::IsNullOrWhiteSpace($j.parameters.location.defaultValue)){
+    >> %PS% echo AddErr (FindLine "location") "Parameter" "location empty"
+    >> %PS% echo }
+
     >> %PS% echo }
 
     >> %PS% echo if($errs.Count -gt 0){
     >> %PS% echo $errs ^| %%{echo $_}; exit 1
-    >> %PS% echo } else { echo RG NAME VALIDATION PASSED }
+    >> %PS% echo } else { echo RG NAME + REGION VALIDATION PASSED }
 
     powershell -ExecutionPolicy Bypass -File %PS%
     '''
   }
 }
-
-
            
         /* =====================================================
            4. Storage Account Template Validation
