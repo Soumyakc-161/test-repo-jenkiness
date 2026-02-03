@@ -4,19 +4,19 @@
     "parameters": {
         "storageAccounts_cftproject_name": {
             "defaultValue": "cftproject",
-            "type": "int"
+            "type": "String"
         },
         "workspaces_cft_databricks_name": {
             "defaultValue": "cft_databricks",
-            "type": "man"
+            "type": "String"
         },
         "virtualNetworks_CFT_Virtual_Network_name": {
             "defaultValue": "CFT_Virtual_Network",
-            "type": "ok"
+            "type": "String"
         },
         "accessConnectors_adb_access_connector_name": {
             "defaultValue": "adb-access-connector",
-            "type": "kk"
+            "type": "String"
         },
         "networkSecurityGroups_databricksnsgmuuuizl5pkmwk_name": {
             "defaultValue": "databricksnsgmuuuizl5pkmwk",
