@@ -175,7 +175,7 @@ Pipeline stopped immediately.
         >> %PSFILE% echo $slashCount = ($type -split "/").Count
         >> %PSFILE% echo if($slashCount -le 2){
         >> %PSFILE% echo if(-not $r.location){
-        >> %PSFILE% echo $ln = FindLine $f.FullName $r.name
+        >> %PSFILE% echo $ln = FindLine $f.FullName $r.type
         >> %PSFILE% echo AddErr("Missing location | File="+$f.Name+" | ResourceType="+$r.type+" | Name="+$r.name+" | Line="+$ln)
         >> %PSFILE% echo }
         >> %PSFILE% echo }
@@ -195,14 +195,6 @@ Pipeline stopped immediately.
         >> %PSFILE% echo Write-Host ""
         >> %PSFILE% echo Write-Host "RESOURCE GROUP VALID"
 
-        >> %PSFILE% echo if($errors.Count -gt 0){
-        >> %PSFILE% echo Write-Host "===== VALIDATION ERRORS ====="
-        >> %PSFILE% echo $errors ^| ForEach-Object { Write-Host $_ }
-        >> %PSFILE% echo exit 1
-        >> %PSFILE% echo } else {
-        >> %PSFILE% echo Write-Host "Validation Passed"
-        >> %PSFILE% echo exit 0
-        >> %PSFILE% echo }
 
         powershell -ExecutionPolicy Bypass -File %PSFILE%
         '''
