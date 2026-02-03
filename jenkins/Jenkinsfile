@@ -139,7 +139,7 @@ Pipeline stopped immediately.
         >> %PSFILE% echo $declType = $null
         >> %PSFILE% echo try { $declType = $p.Value.type.ToLower() } catch {}
         >> %PSFILE% echo if($declType -and $declType -notin $validTypes){
-        >> %PSFILE% echo $ln = FindLine $f.FullName "\"$($p.Name)\""
+        >> %PSFILE% echo $ln = FindLine $f.FullName $p.Name
         >> %PSFILE% echo AddErr("Invalid datatype | File="+$f.Name+" | Parameter="+$p.Name+" | Line="+$ln+" | Found="+$p.Value.type)
         >> %PSFILE% echo }
 
@@ -160,7 +160,7 @@ Pipeline stopped immediately.
         >> %PSFILE% echo }
         >> %PSFILE% echo }
         >> %PSFILE% echo if(-not $typeOk){
-        >> %PSFILE% echo $ln = FindLine $f.FullName "\"$($p.Name)\""
+        >> %PSFILE% echo $ln = FindLine $f.FullName $p.Name
         >> %PSFILE% echo AddErr("DefaultValue type mismatch | File="+$f.Name+" | Parameter="+$p.Name+" | Line="+$ln+" | Declared="+$declType+" | DefaultValueType="+$defVal.GetType().Name)
         >> %PSFILE% echo }
         >> %PSFILE% echo }
@@ -175,7 +175,7 @@ Pipeline stopped immediately.
         >> %PSFILE% echo $slashCount = ($type -split "/").Count
         >> %PSFILE% echo if($slashCount -le 2){
         >> %PSFILE% echo if(-not $r.location){
-        >> %PSFILE% echo $ln = FindLine $f.FullName "\"type\": \"$type\""
+        >> %PSFILE% echo $ln = FindLine $f.FullName $r.type
         >> %PSFILE% echo AddErr("Missing location | File="+$f.Name+" | ResourceType="+$r.type+" | Name="+$r.name+" | Line="+$ln)
         >> %PSFILE% echo }
         >> %PSFILE% echo }
