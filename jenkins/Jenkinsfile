@@ -192,7 +192,7 @@ Pipeline stopped immediately.
         >> %PSFILE% echo }
         >> %PSFILE% echo }
 
-
+        >> %PSFILE% echo }
 
           
 
