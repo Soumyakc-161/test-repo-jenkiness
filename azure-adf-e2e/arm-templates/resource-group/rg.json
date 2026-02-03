@@ -24,7 +24,7 @@
         },
         "userAssignedIdentities_databricks_uami_autoloader_name": {
             "defaultValue": "databricks-uami-autoloader",
-            "type": "Str"
+            "type": "Stri"
         }
     },
     "variables": {},
