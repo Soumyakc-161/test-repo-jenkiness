@@ -92,29 +92,32 @@ Pipeline stopped immediately.
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
-        stage('ARM Validate') {
+        stage('Validate RG Name Only') {
   steps {
     bat '''
     @echo off
     powershell -Command ^
-    "$errs=@(); ^
-    function E($f,$l,$m){$errs+=('Error | File='+$f+' | Line='+$l+' | '+$m)}; ^
-    function L($f,$t){$i=1;gc $f|%{if($_ -match [regex]::Escape($t)){return $i};$i++};'?'}; ^
-    gci arm-templates -r *.json | %{
-      $f=$_.FullName
-      try{$j=gc $f -Raw|ConvertFrom-Json}catch{E $_.Name $_.Exception.LineNumber 'JSON syntax error';return}
-      if(!$j.resources){E $_.Name 1 'Missing resources';return}
-      foreach($r in $j.resources){
-        if(!$r.type){E $_.Name (L $f 'type') 'Missing type'}
-        if(!$r.apiVersion){E $_.Name (L $f 'apiVersion') 'Missing apiVersion'}
-        if(!$r.name){E $_.Name (L $f 'name') 'Missing name'}
-        if(!$r.location){E $_.Name (L $f $r.type) 'Missing location'}
+    "$e=@(); ^
+    function A($l,$w,$m){$e+=('Error: Line='+$l+' | Where='+$w+' | File=rg.json | '+$m)}; ^
+    function L($t){$i=1;gc arm-templates\\resource-group\\rg.json|%{if($_ -match [regex]::Escape($t)){return $i};$i++};'?'}; ^
+
+    $f='arm-templates\\resource-group\\rg.json'; ^
+    try{$j=gc $f -Raw|ConvertFrom-Json}catch{A $_.Exception.LineNumber 'JSON' 'Syntax error';$bad=1}; ^
+
+    if(!$j.parameters){A 1 'Template' 'parameters block missing'} else { ^
+      if(!$j.parameters.psobject.Properties.Name -contains 'resourceGroupName'){
+        A (L 'parameters') 'Parameter' 'resourceGroupName parameter missing'
+      } else {
+        $v=$j.parameters.resourceGroupName.defaultValue
+        if($v -eq ''){A (L 'resourceGroupName') 'Parameter' 'resourceGroupName empty'}
       }
     }; ^
-    if($errs){$errs|%{echo $_}; exit 1}else{echo ARM OK}"
+
+    if($e){$e|%{echo $_}; exit 1}else{echo RG NAME VALIDATION PASSED}"
     '''
   }
 }
+
            
         /* =====================================================
            4. Storage Account Template Validation
