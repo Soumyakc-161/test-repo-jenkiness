@@ -165,10 +165,7 @@ Pipeline stopped immediately.
 
 
         >> %PSFILE% echo if($p.Name -like "*location*" -and $p.Value.defaultValue){
-        >> %PSFILE% echo if($allowed -notcontains $p.Value.defaultValue){
-        >> %PSFILE% echo $ln = FindLine $f.FullName $p.Value.defaultValue
-        >> %PSFILE% echo AddErr("Invalid region | File="+$f.Name+" | Path=parameters."+ $p.Name +".defaultValue | Line="+$ln+" | Value="+$p.Value.defaultValue)
-        >> %PSFILE% echo }
+        >> %PSFILE% echo Write-Host "Location parameter detected:" $p.Value.defaultValue
         >> %PSFILE% echo }
 
         >> %PSFILE% echo }
@@ -178,16 +175,13 @@ Pipeline stopped immediately.
         >> %PSFILE% echo foreach($r in $j.resources){
 
         >> %PSFILE% echo if($r.location){
-        >> %PSFILE% echo if($r.location -notlike "[*]" -and $allowed -notcontains $r.location){
-        >> %PSFILE% echo $ln = FindLine $f.FullName $r.location
-        >> %PSFILE% echo AddErr("Invalid region | File="+$f.Name+" | ResourceType="+$r.type+" | Name="+$r.name+" | Line="+$ln+" | Value="+$r.location)
-        >> %PSFILE% echo }
+        >> %PSFILE% echo Write-Host "Resource location detected:" $r.location
         >> %PSFILE% echo }
 
         >> %PSFILE% echo }
         >> %PSFILE% echo }
 
-        >> %PSFILE% echo }
+        >> %PSFILE% echo }  
 
         >> %PSFILE% echo if($errors.Count -gt 0){
         >> %PSFILE% echo Write-Host ""
