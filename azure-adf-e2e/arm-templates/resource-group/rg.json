@@ -8,7 +8,7 @@
         },
         "workspaces_cft_databricks_name": {
             "defaultValue": "cft_databricks",
-            "type": "ng"
+            "type": "string"
         },
         "virtualNetworks_CFT_Virtual_Network_name": {
             "defaultValue": "CFT_Virtual_Network",
@@ -24,7 +24,7 @@
         },
         "userAssignedIdentities_databricks_uami_autoloader_name": {
             "defaultValue": "databricks-uami-autoloader",
-            "type": "auto"
+            "type": "String"
         }
     },
     "variables": {},
