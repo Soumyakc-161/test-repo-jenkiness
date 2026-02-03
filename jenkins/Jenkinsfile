@@ -176,22 +176,17 @@ Pipeline stopped immediately.
         >> %PSFILE% echo }
         >> %PSFILE% echo }
 
-        >> %PSFILE% echo if($j.resources){
+       >> %PSFILE% echo if($j.resources){
         >> %PSFILE% echo foreach($r in $j.resources){
-
-        :: only validate top-level resources (no parent)
-        >> %PSFILE% echo if(-not $r.dependsOn){
-
+        >> %PSFILE% echo $type = $r.type
+        >> %PSFILE% echo $slashCount = ($type -split "/").Count
+        >> %PSFILE% echo if($slashCount -le 2){   # only parent resources
         >> %PSFILE% echo if(-not $r.location){
-        >> %PSFILE% echo $ln = FindLine $f.FullName '"location"'
-        >> %PSFILE% echo AddErr("Missing location | File="+$f.Name+" | ResourceType="+$r.type+" | Line="+$ln)
-        >> %PSFILE% echo }
-
-        >> %PSFILE% echo }
-
+        >> %PSFILE% echo $ln = FindLine $f.FullName $type
+        >> %PSFILE% echo AddErr("Missing location | File="+$f.Name+" | ResourceType="+$type+" | Line="+$ln)
         >> %PSFILE% echo }
         >> %PSFILE% echo }
-
+        >> %PSFILE% echo }
         >> %PSFILE% echo }
 
           
