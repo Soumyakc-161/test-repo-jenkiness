@@ -185,6 +185,16 @@ Pipeline stopped immediately.
         >> %PSFILE% echo Write-Host ""
         >> %PSFILE% echo Write-Host "ALL ARM TEMPLATES VALID"
 
+        >> %PSFILE% echo if($errors.Count -gt 0){
+        >> %PSFILE% echo Write-Host "===== VALIDATION ERRORS ====="
+        >> %PSFILE% echo $errors ^| ForEach-Object { Write-Host $_ }
+        >> %PSFILE% echo exit 1
+        >> %PSFILE% echo } else {
+        >> %PSFILE% echo Write-Host "Validation Passed"
+        >> %PSFILE% echo exit 0
+        >> %PSFILE% echo }
+
+
         powershell -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
