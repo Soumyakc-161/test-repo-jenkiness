@@ -46,7 +46,7 @@
             "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
             "apiVersion": "2025-01-31-preview",
             "name": "[parameters('userAssignedIdentities_databricks_uami_autoloader_name')]",
-            "location": "southindia"
+            "location": ""
         },
         {
             "type": "Microsoft.Network/networkSecurityGroups",
