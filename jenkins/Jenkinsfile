@@ -190,9 +190,8 @@ Pipeline stopped immediately.
         >> %PSFILE% echo }
         >> %PSFILE% echo }
 
+        >> %PSFILE% echo }
 
-
-          
 
         >> %PSFILE% echo if($errors.Count -gt 0){
         >> %PSFILE% echo Write-Host ""
