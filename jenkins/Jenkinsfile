@@ -110,10 +110,11 @@ Pipeline stopped immediately.
         >> %PSFILE% echo function FindLine($file,$text){
         >> %PSFILE% echo $lines = Get-Content $file
         >> %PSFILE% echo for($i=0;$i -lt $lines.Length;$i++){
-        >> %PSFILE% echo if($lines[$i] -match [regex]::Escape($text)){ return ($i+1) }
+        >> %PSFILE% echo if($lines[$i].Contains($text)){ return ($i+1) }
         >> %PSFILE% echo }
-        >> %PSFILE% echo return "Unknown"
+        >> %PSFILE% echo return -1
         >> %PSFILE% echo }
+
 
         >> %PSFILE% echo $files = Get-ChildItem "azure-adf-e2e\\arm-templates\\resource-group" -Recurse -Filter *.json
 
@@ -182,7 +183,7 @@ Pipeline stopped immediately.
         >> %PSFILE% echo $slashCount = ($type -split "/").Count
         >> %PSFILE% echo if($slashCount -le 2){   # only parent resources
         >> %PSFILE% echo if(-not $r.location){
-        >> %PSFILE% echo $ln = FindLine $f.FullName "\"location\""
+        >> %PSFILE% echo $ln = FindLine $f.FullName "\"type\": \"$type\""
         >> %PSFILE% echo AddErr("Missing location | File="+$f.Name+" | ResourceType="+$r.type+" | Name="+$r.name+" | Line="+$ln)
         >> %PSFILE% echo }
         >> %PSFILE% echo }
