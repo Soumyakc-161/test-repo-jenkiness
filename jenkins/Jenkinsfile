@@ -96,25 +96,38 @@ Pipeline stopped immediately.
   stage('Validate Names Format Only') {
     steps {
         bat '''
-        powershell -Command "
-        $file = 'azure-adf-e2e\\arm-templates\\resource-group\\rg.json'
-        $json = Get-Content $file -Raw | ConvertFrom-Json
+        echo Creating PowerShell validator...
 
-        $pattern = '^[a-zA-Z0-9._()-]{1,90}$'
+        set PSFILE=validate_names.ps1
 
-        foreach ($p in $json.parameters.PSObject.Properties) {
-            $val = $p.Value.defaultValue
-            if ($val -and ($val -notmatch $pattern)) {
-                Write-Error \"Invalid name format → $val\"
-                exit 1
-            }
-        }
+        > %PSFILE% echo $ErrorActionPreference = "Stop"
+        >> %PSFILE% echo $file = "azure-adf-e2e\\arm-templates\\resource-group\\rg.json"
+        >> %PSFILE% echo if (!(Test-Path $file)) { Write-Error "File not found: $file"; exit 1 }
+        >> %PSFILE% echo try {
+        >> %PSFILE% echo   $raw = Get-Content $file -Raw
+        >> %PSFILE% echo   $json = $raw ^| ConvertFrom-Json
+        >> %PSFILE% echo } catch {
+        >> %PSFILE% echo   Write-Error "JSON parse error in $file at line $($_.InvocationInfo.ScriptLineNumber)"
+        >> %PSFILE% echo   exit 1
+        >> %PSFILE% echo }
 
-        Write-Host 'All names are valid format'
-        "
+        >> %PSFILE% echo $pattern = '^[a-zA-Z0-9._()-]{1,90}$'
+
+        >> %PSFILE% echo foreach ($p in $json.parameters.PSObject.Properties) {
+        >> %PSFILE% echo   $val = $p.Value.defaultValue
+        >> %PSFILE% echo   if ($val -and ($val -notmatch $pattern)) {
+        >> %PSFILE% echo     Write-Error "Invalid name format in file=$file parameter=$($p.Name) value=$val"
+        >> %PSFILE% echo     exit 1
+        >> %PSFILE% echo   }
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo Write-Host "All names valid in $file"
+
+        powershell -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
 }
+
 
 
 
