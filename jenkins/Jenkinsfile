@@ -193,7 +193,7 @@ Pipeline stopped immediately.
         >> %PSFILE% echo }
 
         >> %PSFILE% echo Write-Host ""
-        >> %PSFILE% echo Write-Host "ALL ARM TEMPLATES VALID"
+        >> %PSFILE% echo Write-Host "RESOURCE GROUP VALID"
 
         >> %PSFILE% echo if($errors.Count -gt 0){
         >> %PSFILE% echo Write-Host "===== VALIDATION ERRORS ====="
