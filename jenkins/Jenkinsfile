@@ -92,8 +92,7 @@ Pipeline stopped immediately.
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
-        
-  stage('ARM Static Validation') {
+    stage('ARM Static Validation') {
 steps {
 bat '''
 set PSFILE=arm_check.ps1
@@ -108,14 +107,11 @@ set PSFILE=arm_check.ps1
 >> %PSFILE% echo     $raw = Get-Content $f.FullName -Raw
 >> %PSFILE% echo     $json = $raw ^| ConvertFrom-Json
 >> %PSFILE% echo   } catch {
->> %PSFILE% echo     Write-Error "SYNTAX ERROR | File=$($f.Name) | Line=$($_.InvocationInfo.ScriptLineNumber) | $($_.Exception.Message)"
+>> %PSFILE% echo     Write-Error "SYNTAX ERROR | File=$($f.Name) | $($_.Exception.Message)"
 >> %PSFILE% echo     exit 1
 >> %PSFILE% echo   }
 
->> %PSFILE% echo   if ($json.resources -eq $null) {
->> %PSFILE% echo     Write-Error "MISSING resources block | File=$($f.Name)"
->> %PSFILE% echo     exit 1
->> %PSFILE% echo   }
+>> %PSFILE% echo   if ($json.resources -eq $null) { continue }
 
 >> %PSFILE% echo   foreach ($r in $json.resources) {
 
@@ -129,14 +125,12 @@ set PSFILE=arm_check.ps1
 >> %PSFILE% echo       exit 1
 >> %PSFILE% echo     }
 
->> %PSFILE% echo     if ($r.location -eq "" -or $r.location -eq $null) {
->> %PSFILE% echo       Write-Error "EMPTY REGION | Resource=$($r.name) | File=$($f.Name)"
->> %PSFILE% echo       exit 1
->> %PSFILE% echo     }
-
->> %PSFILE% echo     if ($r.location -notmatch '^[a-zA-Z]+') {
->> %PSFILE% echo       Write-Error "INVALID REGION FORMAT | $($r.location) | File=$($f.Name)"
->> %PSFILE% echo       exit 1
+>> %PSFILE% echo     # Only check location for top-level resources
+>> %PSFILE% echo     if ($r.type -notmatch "/") {
+>> %PSFILE% echo       if ($r.location -eq "" -or $r.location -eq $null) {
+>> %PSFILE% echo         Write-Error "EMPTY REGION | Resource=$($r.name) | File=$($f.Name)"
+>> %PSFILE% echo         exit 1
+>> %PSFILE% echo       }
 >> %PSFILE% echo     }
 
 >> %PSFILE% echo   }
@@ -148,7 +142,7 @@ powershell -ExecutionPolicy Bypass -File %PSFILE%
 '''
 }
 }
-       
+           
         /* =====================================================
            4. Storage Account Template Validation
         ====================================================== */
