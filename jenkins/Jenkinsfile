@@ -117,15 +117,11 @@ Pipeline stopped immediately.
         >> %PSFILE% echo }
 
 
-
-
         >> %PSFILE% echo $files = Get-ChildItem "azure-adf-e2e\\arm-templates\\resource-group" -Recurse -Filter *.json
 
         >> %PSFILE% echo foreach($f in $files){
         >> %PSFILE% echo Write-Host ""
         >> %PSFILE% echo Write-Host "Checked file:" $f.Name
-
-        
 
         >> %PSFILE% echo try{
         >> %PSFILE% echo $j = Get-Content $f.FullName -Raw ^| ConvertFrom-Json
@@ -137,21 +133,18 @@ Pipeline stopped immediately.
         >> %PSFILE% echo if($j.parameters){
         >> %PSFILE% echo foreach($p in $j.parameters.PSObject.Properties){
 
-        :: ADDED BLOCK — datatype name validation
         >> %PSFILE% echo $validTypes=@("string","int","bool","array","object","securestring","secureobject")
         >> %PSFILE% echo $declType = $null
         >> %PSFILE% echo try { $declType = $p.Value.type.ToLower() } catch {}
         >> %PSFILE% echo if($declType -and $declType -notin $validTypes){
-        >> %PSFILE% echo $ln = FindLine $f.FullName "\"$($p.Name)\""
+        >> %PSFILE% echo $ln = FindLine $f.FullName $p.Name
         >> %PSFILE% echo AddErr("Invalid datatype | File="+$f.Name+" | Parameter="+$p.Name+" | Line="+$ln+" | Found="+$p.Value.type)
         >> %PSFILE% echo }
-
 
         >> %PSFILE% echo if($p.Value.PSObject.Properties.Name -contains "defaultValue"){
         >> %PSFILE% echo $declType = $p.Value.type.ToLower()
         >> %PSFILE% echo $defVal = $p.Value.defaultValue
         >> %PSFILE% echo $typeOk = $true
-        >> %PSFILE% echo $validTypes=@("string","int","bool","array","object","securestring","secureobject")
         >> %PSFILE% echo if($declType -notin $validTypes){ $typeOk = $false }
         >> %PSFILE% echo else {
         >> %PSFILE% echo switch ($declType) {
@@ -163,11 +156,10 @@ Pipeline stopped immediately.
         >> %PSFILE% echo }
         >> %PSFILE% echo }
         >> %PSFILE% echo if(-not $typeOk){
-        >> %PSFILE% echo $ln = FindLine $f.FullName "\"$($p.Name)\""
+        >> %PSFILE% echo $ln = FindLine $f.FullName $p.Name
         >> %PSFILE% echo AddErr("DefaultValue type mismatch | File="+$f.Name+" | Parameter="+$p.Name+" | Line="+$ln+" | Declared="+$declType+" | DefaultValueType="+$defVal.GetType().Name)
         >> %PSFILE% echo }
         >> %PSFILE% echo }
-
 
         >> %PSFILE% echo }
         >> %PSFILE% echo }
@@ -178,7 +170,7 @@ Pipeline stopped immediately.
         >> %PSFILE% echo $slashCount = ($type -split "/").Count
         >> %PSFILE% echo if($slashCount -le 2){
         >> %PSFILE% echo if(-not $r.location){
-        >> %PSFILE% echo $ln = FindLine $f.FullName "\"type\": \"$($r.type)\""
+        >> %PSFILE% echo $ln = FindLine $f.FullName $r.type
         >> %PSFILE% echo AddErr("Missing location | File="+$f.Name+" | ResourceType="+$r.type+" | Name="+$r.name+" | Line="+$ln)
         >> %PSFILE% echo }
         >> %PSFILE% echo }
@@ -186,7 +178,6 @@ Pipeline stopped immediately.
         >> %PSFILE% echo }
 
         >> %PSFILE% echo }
-
 
         >> %PSFILE% echo if($errors.Count -gt 0){
         >> %PSFILE% echo Write-Host ""
@@ -198,11 +189,11 @@ Pipeline stopped immediately.
         >> %PSFILE% echo Write-Host ""
         >> %PSFILE% echo Write-Host "RESOURCE GROUP VALID"
 
-
         powershell -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
 }
+
 
        
         /* =====================================================
