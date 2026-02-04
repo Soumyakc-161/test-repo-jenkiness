@@ -94,75 +94,97 @@ Pipeline stopped immediately.
            3. Resource Group Template Validation
         ====================================================== */
 
-        stage('Validate RG - Basics') {
- steps {
-  bat '''
-  echo 🔍 Validating RG Template Basics...
+        // Validate RG – Basics (Parameters & Names)
 
-  set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
-  set PSFILE=validate-rg-basic.ps1
+stage('Validate RG - Basics') {
+    steps {
+        bat '''
+        echo 🔍 Validating RG Template Basics...
 
-  if not exist %FILE% (
-    echo Error: File missing | rg.json
-    exit /b 1
-  )
+        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
+        set PSFILE=validate-rg-basic.ps1
 
-  echo $raw = Get-Content '%FILE%' -Raw > %PSFILE%
-  echo try { $json = $raw ^| ConvertFrom-Json } catch { >> %PSFILE%
-  echo   Write-Host "Error: JSON syntax error | rg.json" >> %PSFILE%
-  echo   exit 1 } >> %PSFILE%
+        REM ===== File exists =====
+        if not exist %FILE% (
+            echo ❌ rg.json missing
+            exit /b 1
+        )
 
-  echo if(-not $json.'$schema'){ Write-Host "Error: schema missing | rg.json"; exit 1 } >> %PSFILE%
-  echo if(-not $json.contentVersion){ Write-Host "Error: contentVersion missing | rg.json"; exit 1 } >> %PSFILE%
+        REM ===== Create PowerShell script =====
+        echo $ErrorActionPreference = 'Stop' > %PSFILE%
+        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
 
-  echo if(-not $json.parameters){ Write-Host "Error: parameters block missing | rg.json"; exit 1 } >> %PSFILE%
+        REM ---- Required parameters + strict values ----
+        echo $expected = @{ >> %PSFILE%
+        echo 'storageAccounts_cftproject_name'='cftproject'; >> %PSFILE%
+        echo 'workspaces_cft_databricks_name'='cft_databricks'; >> %PSFILE%
+        echo 'virtualNetworks_CFT_Virtual_Network_name'='CFT_Virtual_Network'; >> %PSFILE%
+        echo 'accessConnectors_adb_access_connector_name'='adb-access-connector'; >> %PSFILE%
+        echo 'networkSecurityGroups_databricksnsgmuuuizl5pkmwk_name'='databricksnsgmuuuizl5pkmwk'; >> %PSFILE%
+        echo 'userAssignedIdentities_databricks_uami_autoloader_name'='databricks-uami-autoloader' >> %PSFILE%
+        echo } >> %PSFILE%
 
-  echo foreach($p in $json.parameters.PSObject.Properties){ >> %PSFILE%
-  echo   if(-not $p.Value.type){ >> %PSFILE%
-  echo     Write-Host "Error: parameter missing datatype | "$($p.Name)" | rg.json" >> %PSFILE%
-  echo     exit 1 }} >> %PSFILE%
+        echo foreach ($k in $expected.Keys) { >> %PSFILE%
+        echo   if (-not $json.parameters.$k) { >> %PSFILE%
+        echo     Write-Host \"❌ Missing parameter: $k\" >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+        echo   if ($json.parameters.$k.defaultValue -ne $expected[$k]) { >> %PSFILE%
+        echo     Write-Host \"❌ Wrong default value for $k\" >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+        echo } >> %PSFILE%
 
-  echo Write-Host "RG Basic validation PASSED" >> %PSFILE%
+        echo Write-Host '✅ RG basic validation PASSED' >> %PSFILE%
 
-  powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
-  '''
- }
+        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
+        '''
+    }
 }
+
+    // Validate RG – Resource Types
 
 stage('Validate RG - Resources') {
- steps {
-  bat '''
-  echo 🔍 Validating RG Template Resources...
+    steps {
+        bat '''
+        echo 🔍 Validating RG Template Resources...
 
-  set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
-  set PSFILE=validate-rg-resources.ps1
+        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
+        set PSFILE=validate-rg-resources.ps1
 
-  echo $json = Get-Content '%FILE%' -Raw ^| ConvertFrom-Json > %PSFILE%
+        echo $ErrorActionPreference = 'Stop' > %PSFILE%
+        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
 
-  echo if(-not $json.resources){ >> %PSFILE%
-  echo  Write-Host "Error: resources block missing | rg.json" >> %PSFILE%
-  echo  exit 1 } >> %PSFILE%
+        REM ---- Required resource types ----
+        echo $requiredTypes = @( >> %PSFILE%
+        echo 'Microsoft.Databricks/workspaces', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts', >> %PSFILE%
+        echo 'Microsoft.Network/virtualNetworks', >> %PSFILE%
+        echo 'Microsoft.Network/networkSecurityGroups', >> %PSFILE%
+        echo 'Microsoft.ManagedIdentity/userAssignedIdentities', >> %PSFILE%
+        echo 'Microsoft.Databricks/accessConnectors', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/blobServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/fileServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/queueServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/tableServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/blobServices/containers' >> %PSFILE%
+        echo ) >> %PSFILE%
 
-  echo $i=0 >> %PSFILE%
-  echo foreach($r in $json.resources){ >> %PSFILE%
-  echo  $i++ >> %PSFILE%
+        echo foreach ($type in $requiredTypes) { >> %PSFILE%
+        echo   if (-not ($json.resources ^| Where-Object { $_.type -eq $type })) { >> %PSFILE%
+        echo     Write-Host \"❌ Missing resource type: $type\" >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+        echo } >> %PSFILE%
 
-  echo  if(-not $r.type){ Write-Host "Error: line?$i | rg.json | missing type"; exit 1 } >> %PSFILE%
-  echo  if(-not $r.name){ Write-Host "Error: line?$i | rg.json | missing name"; exit 1 } >> %PSFILE%
-  echo  if(-not $r.apiVersion){ Write-Host "Error: line?$i | rg.json | missing apiVersion"; exit 1 } >> %PSFILE%
+        echo Write-Host '✅ RG resource validation PASSED' >> %PSFILE%
 
-  echo  if($r.location -eq ""){ >> %PSFILE%
-  echo    Write-Host "Error: line?$i | rg.json | empty location"; exit 1 } >> %PSFILE%
-
-  echo } >> %PSFILE%
-
-  echo Write-Host "RG Resource validation PASSED" >> %PSFILE%
-
-  powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
-  '''
- }
+        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
+        '''
+    }
 }
 
+  
 
            
         /* =====================================================
