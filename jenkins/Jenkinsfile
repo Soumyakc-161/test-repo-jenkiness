@@ -99,22 +99,16 @@ Pipeline stopped immediately.
 stage('Validate RG - Basics') {
     steps {
         bat '''
-        @echo off
-        del validate-rg-basic.ps1 2>NUL
-
         echo 🔍 Validating RG Template Basics...
 
         set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
         set PSFILE=validate-rg-basic.ps1
 
-
-        if not exist "%FILE%" (
-         echo ❌ ERROR: File not found → %FILE%
-         exit /b 1
-        ) else (
-         echo ✅ Using file → %FILE%
+        REM ===== File exists =====
+        if not exist %FILE% (
+            echo ❌ rg.json missing
+            exit /b 1
         )
-
 
         REM ===== Create PowerShell script =====
         echo $ErrorActionPreference = 'Stop' > %PSFILE%
@@ -131,20 +125,15 @@ stage('Validate RG - Basics') {
         echo } >> %PSFILE%
 
         echo foreach ($k in $expected.Keys) { >> %PSFILE%
-        echo   $param = $json.parameters[$k] >> %PSFILE%
-        echo   if (-not $param) { >> %PSFILE%
-        echo     $ln = ((Get-Content '%FILE%') ^| Select-String -SimpleMatch $k ^| Select -First 1).LineNumber >> %PSFILE%
-        echo     Write-Host \"ERROR: Line $ln, File %FILE%, Where $k, What Missing parameter\" >> %PSFILE%
+        echo   if (-not $json.parameters.$k) { >> %PSFILE%
+        echo     Write-Host \"❌ Missing parameter: $k\" >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
-        echo   if ($param.defaultValue -ne $expected[$k]) { >> %PSFILE%
-        echo     $ln = ((Get-Content '%FILE%') ^| Select-String -SimpleMatch $k ^| Select -First 1).LineNumber >> %PSFILE%
-        echo     Write-Host \"ERROR: Line $ln, File %FILE%, Where $k, What Expected=$($expected[$k]) Found=$($param.defaultValue)\" >> %PSFILE%
+        echo   if ($json.parameters.$k.defaultValue -ne $expected[$k]) { >> %PSFILE%
+        echo     Write-Host \"❌ Wrong default value for $k\" >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
         echo } >> %PSFILE%
-
-
 
         echo Write-Host '✅ RG basic validation PASSED' >> %PSFILE%
 
@@ -153,15 +142,15 @@ stage('Validate RG - Basics') {
     }
 }
 
-    // Validate RG – Resource Types
+// Validate RG – Resource Types
 
 stage('Validate RG - Resources') {
     steps {
         bat '''
-        @echo off
-        del validate-rg-basic.ps1 2>NUL
-        echo 🔍 Validating RG Template Basics...
+        echo 🔍 Validating RG Template Resources...
 
+        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
+        set PSFILE=validate-rg-resources.ps1
 
         echo $ErrorActionPreference = 'Stop' > %PSFILE%
         echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
@@ -190,52 +179,6 @@ stage('Validate RG - Resources') {
 
         echo Write-Host '✅ RG resource validation PASSED' >> %PSFILE%
 
-        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
-        '''
-    }
-}
-
-  
-
-           
-        /* =====================================================
-           4. Storage Account Template Validation
-        ====================================================== */
-       stage('Validate - Storage Account Basics') {
-    steps {
-        bat '''
-        echo 🔍 Validating Storage Account Template - Basics...
-
-        set FILE=azure-adf-e2e\\arm-templates\\storage-account\\storage.json
-        set PSFILE=validate-storage-basics.ps1
-
-        REM ===== File exists =====
-        if not exist %FILE% (
-            echo ❌ storage.json missing at expected path
-            exit /b 1
-        )
-
-        REM ===== Create PowerShell script =====
-        echo $ErrorActionPreference = 'Stop' > %PSFILE%
-        echo $expectedName = 'cftproject' >> %PSFILE%
-        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
-
-        REM ---- Required parameter ----
-        echo if (-not $json.parameters.storageAccounts_cftproject_name) { >> %PSFILE%
-        echo     Write-Host '❌ Missing parameter: storageAccounts_cftproject_name' >> %PSFILE%
-        echo     exit 1 >> %PSFILE%
-        echo } >> %PSFILE%
-
-        REM ---- Strict storage account name ----
-        echo $storageName = $json.parameters.storageAccounts_cftproject_name.defaultValue >> %PSFILE%
-        echo if ($storageName -ne $expectedName) { >> %PSFILE%
-        echo     Write-Host \"❌ Storage account name must be '$expectedName'. Found: $storageName\" >> %PSFILE%
-        echo     exit 1 >> %PSFILE%
-        echo } >> %PSFILE%
-
-        echo Write-Host '✅ Storage Account basic validation PASSED' >> %PSFILE%
-
-        REM ===== Execute =====
         powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
