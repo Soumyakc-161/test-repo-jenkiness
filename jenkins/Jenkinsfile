@@ -99,16 +99,20 @@ Pipeline stopped immediately.
 stage('Validate RG - Basics') {
     steps {
         bat '''
+        @echo off
+
         echo 🔍 Validating RG Template Basics...
 
         for /r %%i in (rg.json) do set FILE=%%i
         set PSFILE=validate-rg-basic.ps1
 
-        REM ===== File exists =====
-        if not exist %FILE% (
-            echo ❌ rg.json missing
-            exit /b 1
+        if not exist "%FILE%" (
+         echo ❌ ERROR: File not found → %FILE%
+         exit /b 1
+        ) else (
+         echo ✅ Using file → %FILE%
         )
+
 
         REM ===== Create PowerShell script =====
         echo $ErrorActionPreference = 'Stop' > %PSFILE%
