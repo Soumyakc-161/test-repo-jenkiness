@@ -95,75 +95,57 @@ Pipeline stopped immediately.
            3. Resource Group Template Validation
         ====================================================== */
 
-        stage('Validate RG Inputs') {
-            steps {
-                script {
-                    if (!params.SUBSCRIPTION_ID?.trim()) {
-                        echo "⚠️ SUBSCRIPTION_ID not provided — skipping check"
-                    }
-
-
-                    if (!params.LOCATION?.trim()) {
-                        error("❌ Error: LOCATION is missing or empty")
-                    }
-
-                    echo "✅ RG input parameters OK"
-                }
-            }
-        }
-
         stage('Validate RG Template') {
-            steps {
-                bat '''
-                @echo off
-                set PSFILE=rg_validate.ps1
+ steps {
+  bat '''
+  @echo off
+  set PSFILE=rg_validate.ps1
 
-                > %PSFILE% echo $errors=@()
-                >> %PSFILE% echo function AddErr($m){ $global:errors += $m }
+  > %PSFILE% echo $errors=@()
+  >> %PSFILE% echo function AddErr($m){ $global:errors += $m }
 
-                >> %PSFILE% echo function FindLine($file,$text){
-                >> %PSFILE% echo $i=0
-                >> %PSFILE% echo Get-Content $file ^| %% { $i++; if($_ -match $text){ return $i } }
-                >> %PSFILE% echo return "?"
-                >> %PSFILE% echo }
+  >> %PSFILE% echo $file="azure-adf-e2e\\arm-templates\\resource-group\\rg.json"
 
-                >> %PSFILE% echo $file="azure-adf-e2e\\arm-templates\\resource-group\\rg.json"
+  >> %PSFILE% echo try{
+  >> %PSFILE% echo $j = Get-Content $file -Raw ^| ConvertFrom-Json
+  >> %PSFILE% echo } catch {
+  >> %PSFILE% echo AddErr("JSON Syntax Error | File=rg.json")
+  >> %PSFILE% echo exit 1
+  >> %PSFILE% echo }
 
-                >> %PSFILE% echo if(!(Test-Path $file)){
-                >> %PSFILE% echo AddErr("File not found | "+$file)
-                >> %PSFILE% echo exit 1
-                >> %PSFILE% echo }
+  >> %PSFILE% echo if(!$j.resources){
+  >> %PSFILE% echo AddErr("No resources block found | rg.json")
+  >> %PSFILE% echo }
 
-                >> %PSFILE% echo try{
-                >> %PSFILE% echo $j = Get-Content $file -Raw ^| ConvertFrom-Json
-                >> %PSFILE% echo } catch {
-                >> %PSFILE% echo AddErr("JSON Syntax Error | File=rg.json")
-                >> %PSFILE% echo exit 1
-                >> %PSFILE% echo }
+  >> %PSFILE% echo $index = 0
+  >> %PSFILE% echo foreach($r in $j.resources){
+  >> %PSFILE% echo $index++
+  >> %PSFILE% echo if(-not $r.PSObject.Properties.Name.Contains("location")){
+  >> %PSFILE% echo AddErr("Resource #"+$index+" missing location property | rg.json")
+  >> %PSFILE% echo continue
+  >> %PSFILE% echo }
 
-                >> %PSFILE% echo if(!$j.resources){
-                >> %PSFILE% echo AddErr("No resources block found | File=rg.json")
-                >> %PSFILE% echo }
+  >> %PSFILE% echo $loc = $r.location
+  >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($loc)){
+  >> %PSFILE% echo AddErr("Resource #"+$index+" has empty location | rg.json")
+  >> %PSFILE% echo }
+  >> %PSFILE% echo }
 
-                >> %PSFILE% echo foreach($r in $j.resources){
-                >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($r.location)){
-                >> %PSFILE% echo $ln = FindLine $file "location"
-                >> %PSFILE% echo AddErr("Missing location | File=rg.json | Line="+$ln)
-                >> %PSFILE% echo }
-                >> %PSFILE% echo }
+  >> %PSFILE% echo if($errors.Count -gt 0){
+  >> %PSFILE% echo Write-Host "====== RG VALIDATION FAILED ======"
+  >> %PSFILE% echo $errors ^| %% { Write-Host "Error: "+$_ }
+  >> %PSFILE% echo exit 1
+  >> %PSFILE% echo } else {
+  >> %PSFILE% echo Write-Host "RG Template Validation Passed"
+  >> %PSFILE% echo }
 
-                >> %PSFILE% echo if($errors.Count -gt 0){
-                >> %PSFILE% echo Write-Host "====== RG VALIDATION FAILED ======"
-                >> %PSFILE% echo $errors ^| %% { Write-Host "Error: "+$_ }
-                >> %PSFILE% echo exit 1
-                >> %PSFILE% echo } else {
-                >> %PSFILE% echo Write-Host "RG Template Validation Passed"
-                >> %PSFILE% echo }
+  powershell -ExecutionPolicy Bypass -File %PSFILE%
+  '''
+ }
+}
 
-                powershell -ExecutionPolicy Bypass -File %PSFILE%
-                '''
-            }
-        }
+
+        
 
 
 
