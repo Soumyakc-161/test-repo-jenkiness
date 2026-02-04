@@ -103,7 +103,7 @@ stage('Validate RG - Basics') {
 
         echo 🔍 Validating RG Template Basics...
 
-        for /r %%i in (rg.json) do set FILE=%%i
+        for /r arm-templates %%i in (rg.json) do set FILE=%%i
         set PSFILE=validate-rg-basic.ps1
 
         if not exist "%FILE%" (
