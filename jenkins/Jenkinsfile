@@ -18,7 +18,7 @@ stage('Validate Branch & Checkout') {
 
             // 🔴 Hard stop if parameter is empty
             if (!params.BRANCH_NAME || params.BRANCH_NAME.trim() == "") {
-                error "❌ BRANCH_NAME parameter is EMPTY. Pipeline aborted."
+                error " BRANCH_NAME parameter is EMPTY. Pipeline aborted."
             }
 
             echo "🔍 Branch entered: ${params.BRANCH_NAME}"
