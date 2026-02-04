@@ -3,8 +3,7 @@ pipeline {
 
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: '', description: 'Enter branch name manually')
-        string(name: 'SUBSCRIPTION_ID', defaultValue: '', description: 'Subscription ID')
-        string(name: 'LOCATION', defaultValue: '', description: 'Azure Location')
+        
     }
 
     stages {
