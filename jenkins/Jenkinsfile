@@ -94,7 +94,7 @@ Pipeline stopped immediately.
            3. Resource Group Template Validation
         ====================================================== */
 
-        Validate RG – Basics (Parameters & Names)
+        // Validate RG – Basics (Parameters & Names)
 
 stage('Validate RG - Basics') {
     steps {
@@ -142,7 +142,7 @@ stage('Validate RG - Basics') {
     }
 }
 
-Validate RG – Resource Types
+// Validate RG – Resource Types
 
 stage('Validate RG - Resources') {
     steps {
