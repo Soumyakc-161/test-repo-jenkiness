@@ -138,7 +138,7 @@ Pipeline stopped immediately.
   >> %PSFILE% echo Write-Host "RG Template Validation Passed"
   >> %PSFILE% echo }
 
-  PowerShell-ExecutionPolicy Bypass -File %PSFILE%
+  PowerShell - ExecutionPolicy Bypass -File %PSFILE%
   '''
  }
 }
