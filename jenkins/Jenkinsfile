@@ -128,15 +128,15 @@ stage('Validate RG - Basics') {
         echo 'userAssignedIdentities_databricks_uami_autoloader_name'='databricks-uami-autoloader' >> %PSFILE%
         echo } >> %PSFILE%
 
-       echo foreach ($k in $expected.Keys) { >> %PSFILE%
+        echo foreach ($k in $expected.Keys) { >> %PSFILE%
         echo   $param = $json.parameters[$k] >> %PSFILE%
         echo   if (-not $param) { >> %PSFILE%
-        echo     $ln = (Select-String -Path '%FILE%' -Pattern "\"$k\"" ^| Select -First 1).LineNumber >> %PSFILE%
+        echo     $ln = ((Get-Content '%FILE%') ^| Select-String $k ^| Select -First 1).LineNumber >> %PSFILE%
         echo     Write-Host \"❌ File:%FILE% Line:$ln Missing parameter:$k\" >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
         echo   if ($param.defaultValue -ne $expected[$k]) { >> %PSFILE%
-        echo     $ln = (Select-String -Path '%FILE%' -Pattern $k ^| Select -First 1).LineNumber >> %PSFILE%
+        echo     $ln = ((Get-Content '%FILE%') ^| Select-String $k ^| Select -First 1).LineNumber >> %PSFILE%
         echo     Write-Host \"❌ File:%FILE% Line:$ln Param:$k Expected:$($expected[$k]) Found:$($param.defaultValue)\" >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
@@ -156,10 +156,10 @@ stage('Validate RG - Basics') {
 stage('Validate RG - Resources') {
     steps {
         bat '''
-        echo 🔍 Validating RG Template Resources...
+        @echo off
+        del validate-rg-basic.ps1 2>NUL
+        echo 🔍 Validating RG Template Basics...
 
-        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
-        set PSFILE=validate-rg-resources.ps1
 
         echo $ErrorActionPreference = 'Stop' > %PSFILE%
         echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
