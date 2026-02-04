@@ -124,16 +124,20 @@ stage('Validate RG - Basics') {
         echo 'userAssignedIdentities_databricks_uami_autoloader_name'='databricks-uami-autoloader' >> %PSFILE%
         echo } >> %PSFILE%
 
-        echo foreach ($k in $expected.Keys) { >> %PSFILE%
-        echo   if (-not $json.parameters[$k]) { >> %PSFILE%
-        echo     Write-Host \"❌ File: %FILE% Missing parameter: $k\" >> %PSFILE%
+       echo foreach ($k in $expected.Keys) { >> %PSFILE%
+        echo   $param = $json.parameters[$k] >> %PSFILE%
+        echo   if (-not $param) { >> %PSFILE%
+        echo     $ln = (Select-String -Path '%FILE%' -Pattern "\"$k\"" ^| Select -First 1).LineNumber >> %PSFILE%
+        echo     Write-Host \"❌ File:%FILE% Line:$ln Missing parameter:$k\" >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
-        echo   if ($json.parameters[$k].defaultValue -ne $expected[$k]) { >> %PSFILE%
-        echo     Write-Host \"❌ File: %FILE% Parameter: $k Expected: $($expected[$k]) Found: $($json.parameters[$k].defaultValue)\" >> %PSFILE%
+        echo   if ($param.defaultValue -ne $expected[$k]) { >> %PSFILE%
+        echo     $ln = (Select-String -Path '%FILE%' -Pattern "\"$k\"" ^| Select -First 1).LineNumber >> %PSFILE%
+        echo     Write-Host \"❌ File:%FILE% Line:$ln Param:$k Expected:$($expected[$k]) Found:$($param.defaultValue)\" >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
         echo } >> %PSFILE%
+
 
 
         echo Write-Host '✅ RG basic validation PASSED' >> %PSFILE%
