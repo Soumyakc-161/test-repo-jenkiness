@@ -3,6 +3,8 @@ pipeline {
 
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: '', description: 'Enter branch name manually')
+        string(name: 'SUBSCRIPTION_ID', defaultValue: '', description: 'Subscription ID')
+        string(name: 'LOCATION', defaultValue: '', description: 'Azure Location')
     }
 
     stages {
@@ -92,63 +94,103 @@ Pipeline stopped immediately.
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
-        stage('Validate RG - Required Fields') {
- steps {
-  bat '''
-  @echo off
-  set PSFILE=rg_required_validate.ps1
+ stages {
 
-  > %PSFILE% echo $errors=@()
-  >> %PSFILE% echo function AddErr($msg){ $global:errors += $msg }
+  stage('Checkout') {
+   steps {
+    checkout scm
+   }
+  }
 
-  >> %PSFILE% echo function FindLine($file,$text){
-  >> %PSFILE% echo $i=0
-  >> %PSFILE% echo Get-Content $file ^| %% { $i++; if($_ -match $text){ return $i } }
-  >> %PSFILE% echo return "?"
-  >> %PSFILE% echo }
+  // ===============================
+  // RG + Subscription + Location Input Check
+  // ===============================
+  stage('Validate RG Inputs') {
+   steps {
+    script {
+      if (!params.RG_NAME?.trim()) {
+        error("❌ Error: RG_NAME is missing or empty")
+      }
 
-  >> %PSFILE% echo $file="azure-adf-e2e\\arm-templates\\resource-group\\rg.json"
+      if (!params.SUBSCRIPTION_ID?.trim()) {
+        error("❌ Error: SUBSCRIPTION_ID is missing or empty")
+      }
 
-  >> %PSFILE% echo if(!(Test-Path $file)){ AddErr("File not found: "+$file); exit 1 }
+      if (!params.LOCATION?.trim()) {
+        error("❌ Error: LOCATION is missing or empty")
+      }
 
-  >> %PSFILE% echo try{
-  >> %PSFILE% echo $j = Get-Content $file -Raw ^| ConvertFrom-Json
-  >> %PSFILE% echo } catch {
-  >> %PSFILE% echo AddErr("JSON Syntax Error | File=rg.json")
-  >> %PSFILE% echo exit 1
-  >> %PSFILE% echo }
+      echo "✅ Inputs OK"
+    }
+   }
+  }
 
-  :: ---- resourceGroupName ----
-  >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($j.parameters.resourceGroupName.defaultValue)){
-  >> %PSFILE% echo $ln = FindLine $file "resourceGroupName"
-  >> %PSFILE% echo AddErr("Missing resourceGroupName | File=rg.json | Line="+$ln)
-  >> %PSFILE% echo }
+  // ===============================
+  // RG Template Validation Only
+  // ===============================
+  stage('Validate RG Template') {
+   steps {
+    bat '''
+    @echo off
+    set PSFILE=rg_validate.ps1
 
-  :: ---- subscriptionId ----
-  >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($j.parameters.subscriptionId.defaultValue)){
-  >> %PSFILE% echo $ln = FindLine $file "subscriptionId"
-  >> %PSFILE% echo AddErr("Missing subscriptionId | File=rg.json | Line="+$ln)
-  >> %PSFILE% echo }
+    > %PSFILE% echo $errors=@()
+    >> %PSFILE% echo function AddErr($m){ $global:errors += $m }
 
-  :: ---- location ----
-  >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($j.parameters.location.defaultValue)){
-  >> %PSFILE% echo $ln = FindLine $file "location"
-  >> %PSFILE% echo AddErr("Missing location | File=rg.json | Line="+$ln)
-  >> %PSFILE% echo }
+    >> %PSFILE% echo function FindLine($file,$text){
+    >> %PSFILE% echo $i=0
+    >> %PSFILE% echo Get-Content $file ^| %% { $i++; if($_ -match $text){ return $i } }
+    >> %PSFILE% echo return "?"
+    >> %PSFILE% echo }
 
-  :: ---- Print Errors ----
-  >> %PSFILE% echo if($errors.Count -gt 0){
-  >> %PSFILE% echo Write-Host "====== VALIDATION FAILED ======"
-  >> %PSFILE% echo $errors ^| %% { Write-Host "Error: "+$_ }
-  >> %PSFILE% echo exit 1
-  >> %PSFILE% echo } else {
-  >> %PSFILE% echo Write-Host "Validation Passed"
-  >> %PSFILE% echo }
+    >> %PSFILE% echo $file="azure-adf-e2e\\arm-templates\\resource-group\\rg.json"
 
-  powershell -ExecutionPolicy Bypass -File %PSFILE%
-  '''
+    >> %PSFILE% echo if(!(Test-Path $file)){
+    >> %PSFILE% echo AddErr("File not found | "+$file)
+    >> %PSFILE% echo }
+
+    >> %PSFILE% echo try{
+    >> %PSFILE% echo $j = Get-Content $file -Raw ^| ConvertFrom-Json
+    >> %PSFILE% echo } catch {
+    >> %PSFILE% echo AddErr("JSON Syntax Error | File=rg.json")
+    >> %PSFILE% echo }
+
+    >> %PSFILE% echo if(!$j.resources){
+    >> %PSFILE% echo AddErr("No resources block found | File=rg.json")
+    >> %PSFILE% echo }
+
+    >> %PSFILE% echo foreach($r in $j.resources){
+    >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($r.location)){
+    >> %PSFILE% echo $ln = FindLine $file "location"
+    >> %PSFILE% echo AddErr("Missing location | File=rg.json | Line="+$ln)
+    >> %PSFILE% echo }
+    >> %PSFILE% echo }
+
+    >> %PSFILE% echo if($errors.Count -gt 0){
+    >> %PSFILE% echo Write-Host "====== RG VALIDATION FAILED ======"
+    >> %PSFILE% echo $errors ^| %% { Write-Host "Error: "+$_ }
+    >> %PSFILE% echo exit 1
+    >> %PSFILE% echo } else {
+    >> %PSFILE% echo Write-Host "RG Template Validation Passed"
+    >> %PSFILE% echo }
+
+    powershell -ExecutionPolicy Bypass -File %PSFILE%
+    '''
+   }
+  }
+
+ }
+
+ post {
+  success {
+   echo "✅ RG validation passed"
+  }
+  failure {
+   echo "❌ RG validation failed"
+  }
  }
 }
+
            
         /* =====================================================
            4. Storage Account Template Validation
