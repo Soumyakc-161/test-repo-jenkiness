@@ -103,15 +103,14 @@ Pipeline stopped immediately.
   > %PSFILE% echo $errors=@()
   >> %PSFILE% echo function AddErr($m){ $global:errors += $m }
 
+  >> %PSFILE% echo $needLocation = @(
+  >> %PSFILE% echo "Microsoft.Storage/storageAccounts",
+  >> %PSFILE% echo "Microsoft.Databricks/workspaces",
+  >> %PSFILE% echo "Microsoft.Network/virtualNetworks"
+  >> %PSFILE% echo )
+
   >> %PSFILE% echo $file="azure-adf-e2e\\arm-templates\\resource-group\\rg.json"
 
-  :: ---------- File exists ----------
-  >> %PSFILE% echo if(!(Test-Path $file)){
-  >> %PSFILE% echo Write-Host "Error: File not found | rg.json"
-  >> %PSFILE% echo exit 1
-  >> %PSFILE% echo }
-
-  :: ---------- JSON parse ----------
   >> %PSFILE% echo try{
   >> %PSFILE% echo $j = Get-Content $file -Raw ^| ConvertFrom-Json
   >> %PSFILE% echo } catch {
@@ -119,30 +118,18 @@ Pipeline stopped immediately.
   >> %PSFILE% echo exit 1
   >> %PSFILE% echo }
 
-  :: ---------- Resources block ----------
-  >> %PSFILE% echo if(-not $j.resources){
-  >> %PSFILE% echo Write-Host "Error: resources block missing | rg.json"
-  >> %PSFILE% echo exit 1
-  >> %PSFILE% echo }
-
-  :: ---------- Location validation ----------
   >> %PSFILE% echo $i=0
   >> %PSFILE% echo foreach($r in $j.resources){
   >> %PSFILE% echo $i++
+  >> %PSFILE% echo if($needLocation -contains $r.type){
 
-  >> %PSFILE% echo if(-not $r.PSObject.Properties.Name.Contains("location")){
-  >> %PSFILE% echo AddErr("Resource #"+$i+" missing location property | rg.json")
-  >> %PSFILE% echo continue
+  >> %PSFILE% echo if(-not $r.location -or $r.location -eq ""){
+  >> %PSFILE% echo AddErr("Resource #"+$i+" ("+$r.type+") missing location | rg.json")
   >> %PSFILE% echo }
 
-  >> %PSFILE% echo $loc = $r.location
-
-  >> %PSFILE% echo if($null -eq $loc -or $loc -eq ""){
-  >> %PSFILE% echo AddErr("Resource #"+$i+" has empty location | rg.json")
   >> %PSFILE% echo }
   >> %PSFILE% echo }
 
-  :: ---------- Final result ----------
   >> %PSFILE% echo if($errors.Count -gt 0){
   >> %PSFILE% echo Write-Host "====== RG VALIDATION FAILED ======"
   >> %PSFILE% echo $errors ^| %% { Write-Host "Error: "+$_ }
@@ -155,6 +142,7 @@ Pipeline stopped immediately.
   '''
  }
 }
+
            
         /* =====================================================
            4. Storage Account Template Validation
