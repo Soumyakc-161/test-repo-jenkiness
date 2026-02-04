@@ -189,7 +189,7 @@ Pipeline stopped immediately.
    echo "❌ RG validation failed"
   }
  }
-}
+
 
            
         /* =====================================================
