@@ -100,12 +100,11 @@ stage('Validate RG - Basics') {
     steps {
         bat '''
         @echo off
-        dir /s rg.json
         echo 🔍 Validating RG Template Basics...
 
-
-        for /r arm-templates %%i in (rg.json) do set FILE=%%i
+        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
         set PSFILE=validate-rg-basic.ps1
+
 
         if not exist "%FILE%" (
          echo ❌ ERROR: File not found → %FILE%
