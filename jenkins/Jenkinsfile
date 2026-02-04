@@ -101,7 +101,7 @@ stage('Validate RG - Basics') {
         bat '''
         echo 🔍 Validating RG Template Basics...
 
-        set FILE=arm-templates\\resource-group\\rg.json
+        for /r %%i in (rg.json) do set FILE=%%i
         set PSFILE=validate-rg-basic.ps1
 
         REM ===== File exists =====
