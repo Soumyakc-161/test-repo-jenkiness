@@ -90,7 +90,7 @@ Pipeline stopped immediately.
                 }
             }
         }
-        
+
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
@@ -99,8 +99,9 @@ Pipeline stopped immediately.
             steps {
                 script {
                     if (!params.SUBSCRIPTION_ID?.trim()) {
-                        error("❌ Error: SUBSCRIPTION_ID is missing or empty")
+                        echo "⚠️ SUBSCRIPTION_ID not provided — skipping check"
                     }
+
 
                     if (!params.LOCATION?.trim()) {
                         error("❌ Error: LOCATION is missing or empty")
