@@ -130,7 +130,7 @@ Pipeline stopped immediately.
   >> %PSFILE% echo }
   >> %PSFILE% echo }
 
-  >> %PSFILE% echo if($errors.Count -gt 0){
+  >> %PSFILE% echo if($error.Count -gt 0){
   >> %PSFILE% echo Write-Host "====== RG VALIDATION FAILED ======"
   >> %PSFILE% echo $errors ^| %% { Write-Host "Error: "+$_ }
   >> %PSFILE% echo exit 1
