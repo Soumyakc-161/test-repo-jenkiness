@@ -94,53 +94,94 @@ Pipeline stopped immediately.
            3. Resource Group Template Validation
         ====================================================== */
 
-        stage('Validate RG Template') {
- steps {
-  bat '''
-  @echo off
-  set PSFILE=rg_validate.ps1
+        Validate RG – Basics (Parameters & Names)
 
-  > %PSFILE% echo $errors=@()
-  >> %PSFILE% echo function AddErr($m){ $global:errors += $m }
+stage('Validate RG - Basics') {
+    steps {
+        bat '''
+        echo 🔍 Validating RG Template Basics...
 
-  >> %PSFILE% echo $needLocation = @(
-  >> %PSFILE% echo "Microsoft.Storage/storageAccounts",
-  >> %PSFILE% echo "Microsoft.Databricks/workspaces",
-  >> %PSFILE% echo "Microsoft.Network/virtualNetworks"
-  >> %PSFILE% echo )
+        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
+        set PSFILE=validate-rg-basic.ps1
 
-  >> %PSFILE% echo $file="azure-adf-e2e\\arm-templates\\resource-group\\rg.json"
+        REM ===== File exists =====
+        if not exist %FILE% (
+            echo ❌ rg.json missing
+            exit /b 1
+        )
 
-  >> %PSFILE% echo try{
-  >> %PSFILE% echo $j = Get-Content $file -Raw ^| ConvertFrom-Json
-  >> %PSFILE% echo } catch {
-  >> %PSFILE% echo Write-Host "Error: JSON syntax error | rg.json"
-  >> %PSFILE% echo exit 1
-  >> %PSFILE% echo }
+        REM ===== Create PowerShell script =====
+        echo $ErrorActionPreference = 'Stop' > %PSFILE%
+        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
 
-  >> %PSFILE% echo $i=0
-  >> %PSFILE% echo foreach($r in $j.resources){
-  >> %PSFILE% echo $i++
-  >> %PSFILE% echo if($needLocation -contains $r.type){
+        REM ---- Required parameters + strict values ----
+        echo $expected = @{ >> %PSFILE%
+        echo 'storageAccounts_cftproject_name'='cftproject'; >> %PSFILE%
+        echo 'workspaces_cft_databricks_name'='cft_databricks'; >> %PSFILE%
+        echo 'virtualNetworks_CFT_Virtual_Network_name'='CFT_Virtual_Network'; >> %PSFILE%
+        echo 'accessConnectors_adb_access_connector_name'='adb-access-connector'; >> %PSFILE%
+        echo 'networkSecurityGroups_databricksnsgmuuuizl5pkmwk_name'='databricksnsgmuuuizl5pkmwk'; >> %PSFILE%
+        echo 'userAssignedIdentities_databricks_uami_autoloader_name'='databricks-uami-autoloader' >> %PSFILE%
+        echo } >> %PSFILE%
 
-  >> %PSFILE% echo if(-not $r.location -or $r.location -eq ""){
-  >> %PSFILE% echo AddErr("Resource #"+$i+" ("+$r.type+") missing location | rg.json")
-  >> %PSFILE% echo }
+        echo foreach ($k in $expected.Keys) { >> %PSFILE%
+        echo   if (-not $json.parameters.$k) { >> %PSFILE%
+        echo     Write-Host \"❌ Missing parameter: $k\" >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+        echo   if ($json.parameters.$k.defaultValue -ne $expected[$k]) { >> %PSFILE%
+        echo     Write-Host \"❌ Wrong default value for $k\" >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+        echo } >> %PSFILE%
 
-  >> %PSFILE% echo }
-  >> %PSFILE% echo }
+        echo Write-Host '✅ RG basic validation PASSED' >> %PSFILE%
 
-  >> %PSFILE% echo if($errors.Count -gt 0){
-  >> %PSFILE% echo Write-Host "====== RG VALIDATION FAILED ======"
-  >> %PSFILE% echo $errors ^| %% { Write-Host "Error: "+$_ }
-  >> %PSFILE% echo exit 1
-  >> %PSFILE% echo } else {
-  >> %PSFILE% echo Write-Host "RG Template Validation Passed"
-  >> %PSFILE% echo }
+        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
+        '''
+    }
+}
 
-  PowerShell - ExecutionPolicy Bypass -File %PSFILE%
-  '''
- }
+Validate RG – Resource Types
+
+stage('Validate RG - Resources') {
+    steps {
+        bat '''
+        echo 🔍 Validating RG Template Resources...
+
+        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
+        set PSFILE=validate-rg-resources.ps1
+
+        echo $ErrorActionPreference = 'Stop' > %PSFILE%
+        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
+
+        REM ---- Required resource types ----
+        echo $requiredTypes = @( >> %PSFILE%
+        echo 'Microsoft.Databricks/workspaces', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts', >> %PSFILE%
+        echo 'Microsoft.Network/virtualNetworks', >> %PSFILE%
+        echo 'Microsoft.Network/networkSecurityGroups', >> %PSFILE%
+        echo 'Microsoft.ManagedIdentity/userAssignedIdentities', >> %PSFILE%
+        echo 'Microsoft.Databricks/accessConnectors', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/blobServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/fileServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/queueServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/tableServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/blobServices/containers' >> %PSFILE%
+        echo ) >> %PSFILE%
+
+        echo foreach ($type in $requiredTypes) { >> %PSFILE%
+        echo   if (-not ($json.resources ^| Where-Object { $_.type -eq $type })) { >> %PSFILE%
+        echo     Write-Host \"❌ Missing resource type: $type\" >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+        echo } >> %PSFILE%
+
+        echo Write-Host '✅ RG resource validation PASSED' >> %PSFILE%
+
+        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
+        '''
+    }
 }
 
            
