@@ -242,27 +242,22 @@ stage('Validate Region + Subscription + Datatype') {
 
         echo   try { $json = Get-Content $file -Raw ^| ConvertFrom-Json } catch { continue } >> %PSFILE%
 
-        echo   if (-not $json.resources) { continue } >> %PSFILE%
+        echo   if ($json.resources) { >> %PSFILE%
+        echo     foreach ($r in $json.resources) { >> %PSFILE%
 
-        REM ---- REGION CHECK ----
-        echo   foreach ($r in $json.resources) { >> %PSFILE%
-        echo     if (-not $r.location) { >> %PSFILE%
-        echo       Write-Host ("Error: line ?, where location, which file " + $f.Name + ", what location missing for resource " + $r.type) >> %PSFILE%
-        echo       exit 1 >> %PSFILE%
+        echo       if (-not $r.location -and $r.type -notmatch 'Microsoft.DataFactory') { >> %PSFILE%
+        echo         Write-Host ("Error: line ?, where location, which file " + $f.Name + ", what location missing for resource " + $r.type) >> %PSFILE%
+        echo         exit 1 >> %PSFILE%
+        echo       } >> %PSFILE%
+
+        echo       if ($r.location -and $r.location -notmatch '^[a-z]+') { >> %PSFILE%
+        echo         Write-Host ("Error: line ?, where location, which file " + $f.Name + ", what invalid region value " + $r.location) >> %PSFILE%
+        echo         exit 1 >> %PSFILE%
+        echo       } >> %PSFILE%
+
         echo     } >> %PSFILE%
+        echo   } >> %PSFILE%
 
-        echo     if (-not $r.location -and $r.type -notmatch 'Microsoft.DataFactory') { >> %PSFILE%
-        echo       Write-Host ("Error: line ?, where location, which file " + $f.Name + ", what location missing for resource " + $r.type) >> %PSFILE%
-        echo       exit 1 >> %PSFILE%
-        echo     } >> %PSFILE%
-
-        echo     if ($r.location -and $r.location -notmatch '^[a-z]+') { >> %PSFILE%
-        echo       Write-Host ("Error: line ?, where location, which file " + $f.Name + ", what invalid region value " + $r.location) >> %PSFILE%
-        echo       exit 1 >> %PSFILE%
-        echo     } >> %PSFILE%
-
-
-        REM ---- PARAMETER DATATYPE CHECK ----
         echo   if ($json.parameters) { >> %PSFILE%
         echo     foreach ($p in $json.parameters.PSObject.Properties) { >> %PSFILE%
         echo       if (-not $p.Value.type) { >> %PSFILE%
@@ -272,7 +267,6 @@ stage('Validate Region + Subscription + Datatype') {
         echo     } >> %PSFILE%
         echo   } >> %PSFILE%
 
-        REM ---- SUBSCRIPTION FORMAT CHECK ----
         echo   $text = Get-Content $file -Raw >> %PSFILE%
         echo   if ($text -match '/subscriptions/([^/]+)/') { >> %PSFILE%
         echo     $sub = $matches[1] >> %PSFILE%
@@ -290,9 +284,6 @@ stage('Validate Region + Subscription + Datatype') {
         '''
     }
 }
-
-
-
 
  
   /* =====================================================hi
