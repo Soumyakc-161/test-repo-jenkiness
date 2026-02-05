@@ -291,33 +291,48 @@ stage('Validate Region + Subscription + Datatype') {
 
 stage('Validate Resource Names + DependsOn') {
     steps {
-        bat """
-@echo off
-del arm-name-check.ps1 2>NUL
-set PSFILE=arm-name-check.ps1
+        bat '''
+        @echo off
+        del arm-name-check.ps1 2>NUL
+        set PSFILE=arm-name-check.ps1
 
-echo $files = Get-ChildItem -Recurse azure-adf-e2e\\arm-templates\\*.json > %PSFILE%
+        echo $ErrorActionPreference = 'Stop' > %PSFILE%
+        echo $files = Get-ChildItem -Recurse azure-adf-e2e\\arm-templates\\*.json >> %PSFILE%
 
-echo foreach ($f in $files) { >> %PSFILE%
-echo   try { $json = Get-Content $f.FullName -Raw ^| ConvertFrom-Json } catch { continue } >> %PSFILE%
-echo   if (-not $json.resources) { continue } >> %PSFILE%
+        echo foreach ($f in $files) { >> %PSFILE%
+        echo   try { $json = Get-Content $f.FullName -Raw ^| ConvertFrom-Json } catch { continue } >> %PSFILE%
+        echo   if (-not $json.resources) { continue } >> %PSFILE%
 
-echo   foreach ($r in $json.resources) { >> %PSFILE%
-echo     if ($r.dependsOn) { >> %PSFILE%
-echo       foreach ($d in $r.dependsOn) { >> %PSFILE%
-echo         if ($d -notmatch "\\[") { >> %PSFILE%
-echo           Write-Host ("Invalid dependsOn format in " + $f.Name) >> %PSFILE%
-echo           exit 1 >> %PSFILE%
-echo         } >> %PSFILE%
-echo       } >> %PSFILE%
-echo     } >> %PSFILE%
-echo   } >> %PSFILE%
-echo } >> %PSFILE%
+        REM ---- check duplicate ONLY for true top-level names ----
+        echo   $names = @() >> %PSFILE%
+        echo   foreach ($r in $json.resources) { >> %PSFILE%
+        echo     if ($r.name -and $r.type -notmatch '/') { >> %PSFILE%
+        echo       if ($names -contains $r.name) { >> %PSFILE%
+        echo         Write-Host ("Error: line ?, where name, which file " + $f.Name + ", what duplicate top-level resource name " + $r.name) >> %PSFILE%
+        echo         exit 1 >> %PSFILE%
+        echo       } >> %PSFILE%
+        echo       $names += $r.name >> %PSFILE%
+        echo     } >> %PSFILE%
+        echo   } >> %PSFILE%
 
-echo Write-Host "DependsOn validation PASSED" >> %PSFILE%
+        REM ---- dependsOn check ----
+        echo   foreach ($r in $json.resources) { >> %PSFILE%
+        echo     if ($r.dependsOn) { >> %PSFILE%
+        echo       foreach ($d in $r.dependsOn) { >> %PSFILE%
+        echo         if ($d -notmatch 'resourceId') { >> %PSFILE%
+        echo           Write-Host ("Error: line ?, where dependsOn, which file " + $f.Name + ", what invalid dependsOn reference") >> %PSFILE%
+        echo           exit 1 >> %PSFILE%
+        echo         } >> %PSFILE%
+        echo       } >> %PSFILE%
+        echo     } >> %PSFILE%
+        echo   } >> %PSFILE%
 
-powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
-"""
+        echo } >> %PSFILE%
+
+        echo Write-Host "Resource name + dependsOn validation PASSED" >> %PSFILE%
+
+        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
+        '''
     }
 }
 
