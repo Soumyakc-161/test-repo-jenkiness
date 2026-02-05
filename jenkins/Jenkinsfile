@@ -251,11 +251,16 @@ stage('Validate Region + Subscription + Datatype') {
         echo       exit 1 >> %PSFILE%
         echo     } >> %PSFILE%
 
-        echo     if ($r.location -notmatch '^[a-z]') { >> %PSFILE%
+        echo     if (-not $r.location -and $r.type -notmatch 'Microsoft.DataFactory') { >> %PSFILE%
+        echo       Write-Host ("Error: line ?, where location, which file " + $f.Name + ", what location missing for resource " + $r.type) >> %PSFILE%
+        echo       exit 1 >> %PSFILE%
+        echo     } >> %PSFILE%
+
+        echo     if ($r.location -and $r.location -notmatch '^[a-z]+') { >> %PSFILE%
         echo       Write-Host ("Error: line ?, where location, which file " + $f.Name + ", what invalid region value " + $r.location) >> %PSFILE%
         echo       exit 1 >> %PSFILE%
         echo     } >> %PSFILE%
-        echo   } >> %PSFILE%
+
 
         REM ---- PARAMETER DATATYPE CHECK ----
         echo   if ($json.parameters) { >> %PSFILE%
