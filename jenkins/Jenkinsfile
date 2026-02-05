@@ -153,6 +153,60 @@ Pipeline stopped immediately.
     }
 }
 
+stage('Universal ARM Syntax & Structure Validation') {
+    steps {
+        bat '''
+        @echo off
+        del arm-universal-validate.ps1 2>NUL
+
+        echo 🔍 Universal ARM validation running...
+
+        set PSFILE=arm-universal-validate.ps1
+
+        echo $ErrorActionPreference = 'Stop' > %PSFILE%
+        echo $files = Get-ChildItem -Recurse azure-adf-e2e\\arm-templates\\*.json >> %PSFILE%
+
+        echo foreach ($f in $files) { >> %PSFILE%
+        echo   $file = $f.FullName >> %PSFILE%
+
+        echo   try { >> %PSFILE%
+        echo     $json = Get-Content $file -Raw ^| ConvertFrom-Json >> %PSFILE%
+        echo   } catch { >> %PSFILE%
+        echo     Write-Host ("Error: line ?, where syntax, which file " + $file + ", what invalid JSON") >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+
+        echo   if (-not $json.parameters) { >> %PSFILE%
+        echo     Write-Host ("Error: line ?, where parameters, which file " + $file + ", what parameters block missing") >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+
+        echo   if (-not $json.resources) { >> %PSFILE%
+        echo     Write-Host ("Error: line ?, where resources, which file " + $file + ", what resources block missing") >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+
+        echo   if ($json.resources.Count -eq 0) { >> %PSFILE%
+        echo     Write-Host ("Error: line ?, where resources, which file " + $file + ", what resources empty") >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+
+        echo   foreach ($p in $json.parameters.PSObject.Properties) { >> %PSFILE%
+        echo     if (-not $p.Value.type) { >> %PSFILE%
+        echo       Write-Host ("Error: line ?, where datatype, which file " + $file + ", what parameter datatype missing for " + $p.Name) >> %PSFILE%
+        echo       exit 1 >> %PSFILE%
+        echo     } >> %PSFILE%
+        echo   } >> %PSFILE%
+
+        echo } >> %PSFILE%
+
+        echo Write-Host "✅ Universal ARM validation PASSED" >> %PSFILE%
+
+        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
+        '''
+    }
+}
+
   /* =====================================================hi
            4. Storage Account Template Validation
         ====================================================== */
