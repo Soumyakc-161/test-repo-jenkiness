@@ -245,7 +245,9 @@ stage('Validate Region + Subscription + Datatype') {
         echo   if ($json.resources) { >> %PSFILE%
         echo     foreach ($r in $json.resources) { >> %PSFILE%
 
-        echo       if (-not $r.location -and $r.type -notmatch 'Microsoft.DataFactory' -and $r.type -notmatch 'Microsoft.Resources/deployments') { >> %PSFILE%
+        echo       $isChild = ($r.type.Split('/').Count -gt 2) >> %PSFILE%
+
+        echo       if (-not $isChild -and -not $r.location -and $r.type -notmatch 'Microsoft.DataFactory' -and $r.type -notmatch 'Microsoft.Resources/deployments') { >> %PSFILE%
         echo         Write-Host ("Error: line ?, where location, which file " + $f.Name + ", what location missing for resource " + $r.type) >> %PSFILE%
         echo         exit 1 >> %PSFILE%
         echo       } >> %PSFILE%
@@ -257,6 +259,7 @@ stage('Validate Region + Subscription + Datatype') {
 
         echo     } >> %PSFILE%
         echo   } >> %PSFILE%
+
 
 
         echo   if ($json.parameters -and $f.Name -notmatch 'Parameters') { >> %PSFILE%
