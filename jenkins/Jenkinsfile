@@ -314,12 +314,18 @@ stage('Validate Resource Names + DependsOn') {
         echo     } >> %PSFILE%
 
         REM ---- DUPLICATE NAME CHECK ----
-        echo     if ($names -contains $r.name) { >> %PSFILE%
-        echo       Write-Host ("Error: line ?, where name, which file " + $f.Name + ", what duplicate resource name " + $r.name) >> %PSFILE%
+        echo   $seen = @{} >> %PSFILE%
+
+        echo   foreach ($r in $json.resources) { >> %PSFILE%
+        echo     if ($r.type -match '/'){ continue } >> %PSFILE%
+        echo     $n = $r.name >> %PSFILE%
+        echo     if ($seen[$n]) { >> %PSFILE%
+        echo       Write-Host ("Error: line ?, where name, which file " + $f.Name + ", what duplicate top-level resource name " + $n) >> %PSFILE%
         echo       exit 1 >> %PSFILE%
         echo     } >> %PSFILE%
+        echo     $seen[$n] = $true >> %PSFILE%
+        echo   } >> %PSFILE%
 
-        echo     $names += $r.name >> %PSFILE%
 
         REM ---- DEPENDSON TYPE CHECK ----
         echo     if ($r.dependsOn) { >> %PSFILE%
