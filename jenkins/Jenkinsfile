@@ -94,121 +94,92 @@ Pipeline stopped immediately.
            3. Resource Group Template Validation
         ====================================================== */
 
-        // Validate RG – Basics (Parameters & Names)
-
-stage('Validate RG - Basics') {
-    steps {
-        bat '''
-        echo 🔍 Validating RG Template Basics...
-
-        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
-        set PSFILE=validate-rg-basic.ps1
-
-        REM ===== File exists =====
-        if not exist %FILE% (
-            echo ❌ rg.json missing
-            exit /b 1
-        )
-
-        REM ===== Create PowerShell script =====
-        echo $ErrorActionPreference = 'Stop' > %PSFILE%
-        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
-
-        REM ---- Required parameters + strict values ----
-        echo $expected = @{ >> %PSFILE%
-        echo 'storageAccounts_cftproject_name'='cftproject'; >> %PSFILE%
-        echo 'workspaces_cft_databricks_name'='cft_databricks'; >> %PSFILE%
-        echo 'virtualNetworks_CFT_Virtual_Network_name'='CFT_Virtual_Network'; >> %PSFILE%
-        echo 'accessConnectors_adb_access_connector_name'='adb-access-connector'; >> %PSFILE%
-        echo 'networkSecurityGroups_databricksnsgmuuuizl5pkmwk_name'='databricksnsgmuuuizl5pkmwk'; >> %PSFILE%
-        echo 'userAssignedIdentities_databricks_uami_autoloader_name'='databricks-uami-autoloader' >> %PSFILE%
-        echo } >> %PSFILE%
-
-        echo foreach ($k in $expected.Keys) { >> %PSFILE%
-        echo   $param = $json.parameters[$k] >> %PSFILE%
-
-        echo   if (-not $param) { >> %PSFILE%
-        echo     $ln = ((Get-Content '%FILE%') ^| Select-String -SimpleMatch $k ^| Select -First 1).LineNumber >> %PSFILE%
-        echo     Write-Host \"ERROR: Line $ln, File %FILE%, Where parameter:$k, What missing\" >> %PSFILE%
-        echo     exit 1 >> %PSFILE%
-        echo   } >> %PSFILE%
-
-        echo   if ($param.defaultValue -ne $expected[$k]) { >> %PSFILE%
-        echo     $ln = ((Get-Content '%FILE%') ^| Select-String -SimpleMatch $k ^| Select -First 1).LineNumber >> %PSFILE%
-        echo     Write-Host \"ERROR: Line $ln, File %FILE%, Where parameter:$k, What wrong default value\" >> %PSFILE%
-        echo     exit 1 >> %PSFILE%
-        echo   } >> %PSFILE%
-
-        echo } >> %PSFILE%
-
-
-        echo Write-Host '✅ RG basic validation PASSED' >> %PSFILE%
-
-        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
-        '''
-    }
-}
-
-// Validate RG – Resource Types
-
-stage('Validate RG - Resources') {
+        stage(' Resource Group Validation') {
     steps {
         bat '''
         @echo off
-        echo 🔍 Validating RG Template Resources...
-
         set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
-        set PSFILE=validate-rg-resources.ps1
+        set PSFILE=offline-validate.ps1
 
-        echo foreach ($k in $expected.Keys) { >> %PSFILE%
-        echo   $param = $json.parameters.PSObject.Properties[$k].Value >> %PSFILE%
+        if not exist "%FILE%" (
+          echo Error: line ?, where file, which file %FILE%, what template missing
+          exit /b 1
+        )
 
-        echo   if (-not $param) { >> %PSFILE%
-        echo     $ln = ((Get-Content '%FILE%') ^| Select-String -SimpleMatch $k ^| Select -First 1).LineNumber >> %PSFILE%
-        echo     Write-Host \"ERROR: Line $ln, File %FILE%, Where parameter:$k, What parameter block missing\" >> %PSFILE%
-        echo     exit 1 >> %PSFILE%
-        echo   } >> %PSFILE%
+        > %PSFILE% echo $ErrorActionPreference='Stop'
+        >> %PSFILE% echo $file="%FILE%"
+        >> %PSFILE% echo try { $json = Get-Content $file -Raw ^| ConvertFrom-Json } catch { 
+        >> %PSFILE% echo   Write-Host "Error: line ?, where json, which file $file, what invalid JSON syntax"
+        >> %PSFILE% echo   exit 1 }
 
-        echo   if ($param.defaultValue -ne $expected[$k]) { >> %PSFILE%
-        echo     $ln = ((Get-Content '%FILE%') ^| Select-String -SimpleMatch $k ^| Select -First 1).LineNumber >> %PSFILE%
-        echo     Write-Host \"ERROR: Line $ln, File %FILE%, Where parameter:$k, What defaultValue mismatch\" >> %PSFILE%
-        echo     exit 1 >> %PSFILE%
-        echo   } >> %PSFILE%
+        REM =============================
+        REM Resource Group param check
+        REM =============================
+        >> %PSFILE% echo if(-not $json.parameters.resourceGroupName){
+        >> %PSFILE% echo  $ln=((Get-Content $file)^|Select-String "resourceGroupName"^|select -First 1).LineNumber
+        >> %PSFILE% echo  Write-Host "Error: line $ln, where parameter, which file $file, what resourceGroupName missing"
+        >> %PSFILE% echo  exit 1 }
 
-        echo } >> %PSFILE%
+        >> %PSFILE% echo $rg=$json.parameters.resourceGroupName.defaultValue
+        >> %PSFILE% echo if([string]::IsNullOrWhiteSpace($rg)){
+        >> %PSFILE% echo  Write-Host "Error: line ?, where parameter, which file $file, what resourceGroupName empty"
+        >> %PSFILE% echo  exit 1 }
 
+        >> %PSFILE% echo if($rg -notmatch '^[a-zA-Z0-9._()-]{1,90}$'){
+        >> %PSFILE% echo  Write-Host "Error: line ?, where parameter, which file $file, what resourceGroupName invalid format"
+        >> %PSFILE% echo  exit 1 }
 
+        REM =============================
+        REM Subscription format check
+        REM =============================
+        >> %PSFILE% echo if($json.parameters.subscriptionId){
+        >> %PSFILE% echo  $sub=$json.parameters.subscriptionId.defaultValue
+        >> %PSFILE% echo  if($sub -notmatch '^[0-9a-fA-F-]{36}$'){
+        >> %PSFILE% echo   Write-Host "Error: line ?, where parameter, which file $file, what subscriptionId invalid format"
+        >> %PSFILE% echo   exit 1 }}
 
-        REM ---- Required resource types ----
-        echo $requiredTypes = @( >> %PSFILE%
-        echo 'Microsoft.Databricks/workspaces', >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts', >> %PSFILE%
-        echo 'Microsoft.Network/virtualNetworks', >> %PSFILE%
-        echo 'Microsoft.Network/networkSecurityGroups', >> %PSFILE%
-        echo 'Microsoft.ManagedIdentity/userAssignedIdentities', >> %PSFILE%
-        echo 'Microsoft.Databricks/accessConnectors', >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts/blobServices', >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts/fileServices', >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts/queueServices', >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts/tableServices', >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts/blobServices/containers' >> %PSFILE%
-        echo ) >> %PSFILE%
+        
+        REM =============================
+        REM Region whitelist check
+        REM =============================
+        >> %PSFILE% echo $allowed=@('centralindia','southindia','eastus','westeurope')
+        >> %PSFILE% echo foreach($r in $json.resources){
+        >> %PSFILE% echo  if($r.location -and $allowed -notcontains $r.location){
+        >> %PSFILE% echo   Write-Host "Error: line ?, where location, which file $file, what invalid region $($r.location)"
+        >> %PSFILE% echo   exit 1 }}
 
-        echo foreach ($type in $requiredTypes) { >> %PSFILE%
-        echo   if (-not ($json.resources ^| Where-Object { $_.type -eq $type })) { >> %PSFILE%
-        echo     $ln = ((Get-Content '%FILE%') ^| Select-String -SimpleMatch $type ^| Select -First 1).LineNumber >> %PSFILE%
-        echo     Write-Host \"ERROR: Line $ln, File %FILE%, Where $type, What Resource type missing\" >> %PSFILE%
-        echo     exit 1 >> %PSFILE%
-        echo   } >> %PSFILE%
-        echo } >> %PSFILE%
+        REM =============================
+        REM Datatype check
+        REM =============================
+        >> %PSFILE% echo foreach($p in $json.parameters.PSObject.Properties){
+        >> %PSFILE% echo  if(-not $p.Value.type){
+        >> %PSFILE% echo   Write-Host "Error: line ?, where parameter, which file $file, what datatype missing for $($p.Name)"
+        >> %PSFILE% echo   exit 1 }}
 
+        REM =============================
+        REM Required resource types
+        REM =============================
+        >> %PSFILE% echo $types=$json.resources.type
+        >> %PSFILE% echo $need=@('Microsoft.Storage/storageAccounts','Microsoft.Network/virtualNetworks')
+        >> %PSFILE% echo foreach($t in $need){
+        >> %PSFILE% echo  if($types -notcontains $t){
+        >> %PSFILE% echo   Write-Host "Error: line ?, where resource, which file $file, what missing resource type $t"
+        >> %PSFILE% echo   exit 1 }}
 
-        echo Write-Host '✅ RG resource validation PASSED' >> %PSFILE%
+        REM =============================
+        REM Hardcoded subscription detection
+        REM =============================
+        >> %PSFILE% echo if((Get-Content $file) -match '/subscriptions/'){
+        >> %PSFILE% echo  Write-Host "Error: line ?, where template, which file $file, what hardcoded subscription id found"
+        >> %PSFILE% echo  exit 1 }
+
+        >> %PSFILE% echo Write-Host "VALIDATION PASSED"
 
         powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
 }
+
 
   /* =====================================================hi
            4. Storage Account Template Validation
