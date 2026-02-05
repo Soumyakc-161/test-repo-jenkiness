@@ -316,7 +316,7 @@ stage('Validate Resource Names + DependsOn') {
         echo   } >> %PSFILE%
 
        REM ---- dependsOn check (relaxed) ----
-        echo   foreach ($r in $json.resources) { >> %PSFILE%
+        // echo   foreach ($r in $json.resources) { >> %PSFILE%
         echo     if ($r.dependsOn) { >> %PSFILE%
         echo       if ($r.dependsOn.Count -eq 0) { >> %PSFILE%
         echo         Write-Host ("Error: line ?, where dependsOn, which file " + $f.Name + ", what dependsOn empty") >> %PSFILE%
