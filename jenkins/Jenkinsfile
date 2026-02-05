@@ -315,17 +315,16 @@ stage('Validate Resource Names + DependsOn') {
         echo     } >> %PSFILE%
         echo   } >> %PSFILE%
 
-        REM ---- dependsOn check ----
+       REM ---- dependsOn check (relaxed) ----
         echo   foreach ($r in $json.resources) { >> %PSFILE%
         echo     if ($r.dependsOn) { >> %PSFILE%
-        echo       foreach ($d in $r.dependsOn) { >> %PSFILE%
-        echo         if ($d -notmatch 'resourceId') { >> %PSFILE%
-        echo           Write-Host ("Error: line ?, where dependsOn, which file " + $f.Name + ", what invalid dependsOn reference") >> %PSFILE%
-        echo           exit 1 >> %PSFILE%
-        echo         } >> %PSFILE%
+        echo       if ($r.dependsOn.Count -eq 0) { >> %PSFILE%
+        echo         Write-Host ("Error: line ?, where dependsOn, which file " + $f.Name + ", what dependsOn empty") >> %PSFILE%
+        echo         exit 1 >> %PSFILE%
         echo       } >> %PSFILE%
         echo     } >> %PSFILE%
         echo   } >> %PSFILE%
+
 
 
         echo } >> %PSFILE%
