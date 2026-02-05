@@ -97,46 +97,61 @@ Pipeline stopped immediately.
 
         stage('Universal ARM Validator') {
     steps {
-        bat '''
-        @echo off
-        echo 🔍 Universal ARM validation running...
+        powershell '''
+        Write-Host "🔍 Universal ARM validation running..."
 
-        powershell -NoProfile -Command ^
-        "$files = Get-ChildItem -Recurse azure-adf-e2e\\arm-templates\\*.json; ^
-        foreach($f in $files){ ^
-          try { $j = Get-Content $f.FullName -Raw | ConvertFrom-Json } ^
-          catch { Write-Host ('Error: line ?, where syntax, which file ' + $f.Name + ', what JSON syntax invalid'); exit 1 }; ^
+        $files = Get-ChildItem -Recurse azure-adf-e2e/arm-templates/*.json
 
-          # -------- location check ----------
-          $loc = $j.resources.location | Select-Object -First 1; ^
-          if(-not $loc){ ^
-            $ln=(Get-Content $f.FullName | Select-String 'location' | Select -First 1).LineNumber; ^
-            Write-Host ('Error: line ' + $ln + ', where location, which file ' + $f.Name + ', what missing location'); exit 1 }; ^
+        foreach($f in $files){
 
-          if($loc -notmatch '^[a-z]'){ ^
-            $ln=(Get-Content $f.FullName | Select-String 'location' | Select -First 1).LineNumber; ^
-            Write-Host ('Error: line ' + $ln + ', where location, which file ' + $f.Name + ', what invalid region value'); exit 1 }; ^
+            try {
+                $j = Get-Content $f.FullName -Raw | ConvertFrom-Json
+            }
+            catch {
+                Write-Host "Error: line ?, where syntax, which file $($f.Name), what JSON syntax invalid"
+                exit 1
+            }
 
-          # -------- subscription check ----------
-          if($f.FullName -match '/subscriptions/([^/]+)/'){ ^
-            $sub=$matches[1]; ^
-            if($sub.Length -ne 36){ ^
-              Write-Host ('Error: line ?, where subscriptionId, which file ' + $f.Name + ', what invalid subscription format'); exit 1 }; ^
-          }
+            # -------- location check ----------
+            $locLine = Select-String -Path $f.FullName -Pattern '"location"' | Select -First 1
+            if(-not $locLine){
+                Write-Host "Error: line ?, where location, which file $($f.Name), what missing location"
+                exit 1
+            }
 
-          # -------- resource group check ----------
-          if($f.FullName -match '/resourceGroups/([^/]+)/'){ ^
-            $rg=$matches[1]; ^
-            if($rg.Length -lt 3){ ^
-              Write-Host ('Error: line ?, where resourceGroup, which file ' + $f.Name + ', what invalid RG name'); exit 1 }; ^
-          }
+            # -------- datatype check ----------
+            $badType = Select-String -Path $f.FullName -Pattern '"type"\\s*:\\s*\\d'
+            if($badType){
+                Write-Host "Error: line $($badType.LineNumber), where type, which file $($f.Name), what datatype must be string"
+                exit 1
+            }
 
-        } ^
-        Write-Host '✅ Universal ARM validation passed'
-        "
+            # -------- subscription format check ----------
+            $subMatch = Select-String -Path $f.FullName -Pattern '/subscriptions/([^/]+)'
+            if($subMatch){
+                $sub = $subMatch.Matches[0].Groups[1].Value
+                if($sub.Length -ne 36){
+                    Write-Host "Error: line $($subMatch.LineNumber), where subscriptionId, which file $($f.Name), what invalid subscription format"
+                    exit 1
+                }
+            }
+
+            # -------- resource group format check ----------
+            $rgMatch = Select-String -Path $f.FullName -Pattern '/resourceGroups/([^/]+)'
+            if($rgMatch){
+                $rg = $rgMatch.Matches[0].Groups[1].Value
+                if($rg.Length -lt 3){
+                    Write-Host "Error: line $($rgMatch.LineNumber), where resourceGroup, which file $($f.Name), what invalid RG name"
+                    exit 1
+                }
+            }
+        }
+
+        Write-Host "✅ Universal ARM validation passed"
         '''
     }
 }
+
 
 
   /* =====================================================hi
