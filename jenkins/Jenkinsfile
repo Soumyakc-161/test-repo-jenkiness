@@ -151,12 +151,14 @@ Pipeline stopped immediately.
         echo     } >> %PSFILE%
 
         echo     $depth = ($r.type -split '/').Count >> %PSFILE%
-        echo     if ($depth -le 2) { >> %PSFILE%
+        echo     if ($depth -le 2 -and $r.type -ne 'Microsoft.Resources/deployments') { >> %PSFILE%
         echo       if (-not $r.location) { >> %PSFILE%
-        echo         Write-Host ("Error: line ?, where location, which file " + $file + ", what location missing for top-level resource " + $r.type) >> %PSFILE%
+        echo         Write-Host ("Error: line ?, where location, which file " + $file + ", what location missing for resource " + $r.type) >> %PSFILE%
         echo         exit 1 >> %PSFILE%
         echo       } >> %PSFILE%
         echo     } >> %PSFILE%
+
+
 
 
         echo   } >> %PSFILE%
