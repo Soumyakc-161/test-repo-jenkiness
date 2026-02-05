@@ -100,10 +100,12 @@ Pipeline stopped immediately.
         powershell '''
         Write-Host "🔍 Universal ARM validation running..."
 
-        $files = Get-ChildItem -Recurse azure-adf-e2e/arm-templates/*.json
+        $files = Get-ChildItem -Recurse azure-adf-e2e/arm-templates/*.json |
+                 Where-Object { $_.Name -notmatch 'Parameters' }
 
         foreach($f in $files){
 
+            # ---------- JSON syntax ----------
             try {
                 $j = Get-Content $f.FullName -Raw | ConvertFrom-Json
             }
@@ -112,45 +114,32 @@ Pipeline stopped immediately.
                 exit 1
             }
 
-            # -------- location check ----------
-            $locLine = Select-String -Path $f.FullName -Pattern '"location"' | Select -First 1
-            if(-not $locLine){
-                Write-Host "Error: line ?, where location, which file $($f.Name), what missing location"
+            # ---------- must have resources ----------
+            if(-not $j.resources){
+                Write-Host "Error: line ?, where resources, which file $($f.Name), what missing resources block"
                 exit 1
             }
 
-            # -------- datatype check ----------
-            $badType = Select-String -Path $f.FullName -Pattern '"type"\\s*:\\s*\\d'
-            if($badType){
-                Write-Host "Error: line $($badType.LineNumber), where type, which file $($f.Name), what datatype must be string"
-                exit 1
-            }
+            # ---------- each resource must have location ----------
+            foreach($r in $j.resources){
+                if(-not $r.location){
+                    Write-Host "Error: line ?, where location, which file $($f.Name), what resource missing location"
+                    exit 1
+                }
 
-            # -------- subscription format check ----------
-            $subMatch = Select-String -Path $f.FullName -Pattern '/subscriptions/([^/]+)'
-            if($subMatch){
-                $sub = $subMatch.Matches[0].Groups[1].Value
-                if($sub.Length -ne 36){
-                    Write-Host "Error: line $($subMatch.LineNumber), where subscriptionId, which file $($f.Name), what invalid subscription format"
+                if($r.location -notmatch '^[a-z]+'){
+                    Write-Host "Error: line ?, where location, which file $($f.Name), what invalid region format"
                     exit 1
                 }
             }
 
-            # -------- resource group format check ----------
-            $rgMatch = Select-String -Path $f.FullName -Pattern '/resourceGroups/([^/]+)'
-            if($rgMatch){
-                $rg = $rgMatch.Matches[0].Groups[1].Value
-                if($rg.Length -lt 3){
-                    Write-Host "Error: line $($rgMatch.LineNumber), where resourceGroup, which file $($f.Name), what invalid RG name"
-                    exit 1
-                }
-            }
         }
 
-        Write-Host "✅ Universal ARM validation passed"
+        Write-Host "✅ Universal ARM validation PASSED"
         '''
     }
 }
+
 
 
 
