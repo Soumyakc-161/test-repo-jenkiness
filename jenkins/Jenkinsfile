@@ -161,7 +161,7 @@ stage('Validate RG - Resources') {
         set PSFILE=validate-rg-resources.ps1
 
         echo foreach ($k in $expected.Keys) { >> %PSFILE%
-        echo   $param = $json.parameters.PSObject.Properties[$k].Value >> %PSFILE%
+        echo   $param = $json.parameters[$k] >> %PSFILE%
         echo   if (-not $param) { >> %PSFILE%
         echo     $ln = ((Get-Content '%FILE%') ^| Select-String -SimpleMatch $k ^| Select -First 1).LineNumber >> %PSFILE%
         echo     Write-Host \"ERROR: Line $ln, File %FILE%, Where parameter:$k, What missing\" >> %PSFILE%
@@ -173,6 +173,7 @@ stage('Validate RG - Resources') {
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
         echo } >> %PSFILE%
+
 
 
 
