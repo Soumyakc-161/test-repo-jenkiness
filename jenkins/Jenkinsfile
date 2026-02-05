@@ -101,7 +101,7 @@ Pipeline stopped immediately.
         @echo off
         del arm-universal-validate.ps1 2>NUL
 
-        echo 🔍 Universal ARM validation running...
+        echo Universal ARM validation running...
 
         set PSFILE=arm-universal-validate.ps1
 
@@ -111,7 +111,6 @@ Pipeline stopped immediately.
         echo foreach ($f in $files) { >> %PSFILE%
         echo   $file = $f.FullName >> %PSFILE%
 
-        REM ===== JSON syntax check =====
         echo   try { >> %PSFILE%
         echo     $json = Get-Content $file -Raw ^| ConvertFrom-Json >> %PSFILE%
         echo   } catch { >> %PSFILE%
@@ -119,25 +118,21 @@ Pipeline stopped immediately.
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
 
-        REM ===== skip parameter-only files =====
         echo   if ($f.Name -match "Parameters") { >> %PSFILE%
-        echo     Write-Host ("INFO: parameter file detected — skipping resource checks → " + $f.Name) >> %PSFILE%
+        echo     Write-Host ("INFO: parameter file detected, skipping resource checks: " + $f.Name) >> %PSFILE%
         echo     continue >> %PSFILE%
         echo   } >> %PSFILE%
 
-        REM ===== template must have resources =====
         echo   if (-not $json.resources) { >> %PSFILE%
         echo     Write-Host ("Error: line ?, where resources, which file " + $file + ", what resources block missing") >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
 
-        REM ===== resources cannot be empty =====
         echo   if ($json.resources.Count -eq 0) { >> %PSFILE%
         echo     Write-Host ("Error: line ?, where resources, which file " + $file + ", what resources empty") >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
 
-        REM ===== validate each resource =====
         echo   foreach ($r in $json.resources) { >> %PSFILE%
         echo     if (-not $r.type) { >> %PSFILE%
         echo       Write-Host ("Error: line ?, where resource, which file " + $file + ", what resource type missing") >> %PSFILE%
@@ -150,11 +145,10 @@ Pipeline stopped immediately.
         echo     } >> %PSFILE%
         echo   } >> %PSFILE%
 
-        REM ===== parameter datatype check (if present) =====
         echo   if ($json.parameters) { >> %PSFILE%
         echo     foreach ($p in $json.parameters.PSObject.Properties) { >> %PSFILE%
         echo       if (-not $p.Value.type) { >> %PSFILE%
-        echo         Write-Host ("Error: line ?, where datatype, which file " + $file + ", what parameter datatype missing for " + $p.Name) >> %PSFILE%
+        echo         Write-Host ("Error: line ?, where datatype, which file " + $file + ", what datatype missing for parameter " + $p.Name) >> %PSFILE%
         echo         exit 1 >> %PSFILE%
         echo       } >> %PSFILE%
         echo     } >> %PSFILE%
@@ -162,12 +156,13 @@ Pipeline stopped immediately.
 
         echo } >> %PSFILE%
 
-        echo Write-Host "✅ Universal ARM validation PASSED" >> %PSFILE%
+        echo Write-Host "Universal ARM validation PASSED" >> %PSFILE%
 
         powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
 }
+
  
 
   /* =====================================================hi
