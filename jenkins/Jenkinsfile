@@ -16,12 +16,12 @@ stage('Validate Branch & Checkout') {
         script {
             def repoUrl = "https://github.com/Soumyakc-161/test-repo-jenkiness.git"
 
-            //  Hard stop if parameter is empty
+            // 🔴 Hard stop if parameter is empty
             if (!params.BRANCH_NAME || params.BRANCH_NAME.trim() == "") {
                 error " BRANCH_NAME parameter is EMPTY. Pipeline aborted."
             }
 
-            echo "Branch entered: ${params.BRANCH_NAME}"
+            echo "🔍 Branch entered: ${params.BRANCH_NAME}"
 
             // Clean workspace to avoid cached success
             deleteDir()
@@ -42,11 +42,11 @@ stage('Validate Branch & Checkout') {
                     ]
                 ])
 
-                echo " Branch '${params.BRANCH_NAME}' VERIFIED and CHECKED OUT"
+                echo "✅ Branch '${params.BRANCH_NAME}' VERIFIED and CHECKED OUT"
 
             } catch (Exception e) {
                 error """
- STRICT FAILURE: BRANCH DOES NOT EXIST
+❌ STRICT FAILURE: BRANCH DOES NOT EXIST
 ---------------------------------------
 Repository : ${repoUrl}
 Branch     : ${params.BRANCH_NAME}
@@ -66,14 +66,14 @@ Pipeline stopped immediately.
         stage('Validate File Types') {
             steps {
                 script {
-                    echo " Enforcing JSON-only policy under arm-templates"
+                    echo "🔍 Enforcing JSON-only policy under arm-templates"
 
                     def status = bat(
                         script: '''
                         @echo off
                         for /R azure-adf-e2e\\arm-templates %%f in (*) do (
                             if not "%%~xf"==".json" (
-                                echo  Invalid file found: %%f
+                                echo ❌ Invalid file found: %%f
                                 exit /b 1
                             )
                         )
@@ -82,10 +82,10 @@ Pipeline stopped immediately.
                     )
 
                     if (status != 0) {
-                        error " Non-JSON files detected"
+                        error "❌ Non-JSON files detected"
                     }
 
-                    echo " JSON-only validation passed"
+                    echo "✅ JSON-only validation passed"
                 }
             }
         }
@@ -99,14 +99,14 @@ Pipeline stopped immediately.
 stage('Validate RG - Basics') {
     steps {
         bat '''
-        echo  Validating RG Template Basics...
+        echo 🔍 Validating RG Template Basics...
 
         set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
         set PSFILE=validate-rg-basic.ps1
 
         REM ===== File exists =====
         if not exist %FILE% (
-            echo  rg.json missing
+            echo ❌ rg.json missing
             exit /b 1
         )
 
@@ -126,16 +126,16 @@ stage('Validate RG - Basics') {
 
         echo foreach ($k in $expected.Keys) { >> %PSFILE%
         echo   if (-not $json.parameters.$k) { >> %PSFILE%
-        echo     Write-Host \" Missing parameter: $k\" >> %PSFILE%
+        echo     Write-Host \"❌ Missing parameter: $k\" >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
         echo   if ($json.parameters.$k.defaultValue -ne $expected[$k]) { >> %PSFILE%
-        echo     Write-Host \" Wrong default value for $k\" >> %PSFILE%
+        echo     Write-Host \"❌ Wrong default value for $k\" >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
         echo } >> %PSFILE%
 
-        echo Write-Host ' RG basic validation PASSED' >> %PSFILE%
+        echo Write-Host '✅ RG basic validation PASSED' >> %PSFILE%
 
         powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
         '''
@@ -147,7 +147,7 @@ stage('Validate RG - Basics') {
 stage('Validate RG - Resources') {
     steps {
         bat '''
-        echo  Validating RG Template Resources...
+        echo 🔍 Validating RG Template Resources...
 
         set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
         set PSFILE=validate-rg-resources.ps1
@@ -172,12 +172,12 @@ stage('Validate RG - Resources') {
 
         echo foreach ($type in $requiredTypes) { >> %PSFILE%
         echo   if (-not ($json.resources ^| Where-Object { $_.type -eq $type })) { >> %PSFILE%
-        echo     Write-Host \" Missing resource type: $type\" >> %PSFILE%
+        echo     Write-Host \"❌ Missing resource type: $type\" >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
         echo } >> %PSFILE%
 
-        echo Write-Host ' RG resource validation PASSED' >> %PSFILE%
+        echo Write-Host '✅ RG resource validation PASSED' >> %PSFILE%
 
         powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
         '''
@@ -187,7 +187,7 @@ stage('Validate RG - Resources') {
 stage('Validate - Storage Account Resourcess') {
     steps {
         bat '''
-        echo  Validating Storage Account Template - Resources...
+        echo 🔍 Validating Storage Account Template - Resources...
 
         set FILE=azure-adf-e2e\\arm-templates\\storage-account\\storage.json
         set PSFILE=validate-storage-resources.ps1
@@ -208,12 +208,12 @@ stage('Validate - Storage Account Resourcess') {
 
         echo foreach ($type in $requiredTypes) { >> %PSFILE%
         echo     if (-not ($json.resources ^| Where-Object { $_.type -eq $type })) { >> %PSFILE%
-        echo         Write-Host \" Missing resource type: $type\" >> %PSFILE%
+        echo         Write-Host \"❌ Missing resource type: $type\" >> %PSFILE%
         echo         exit 1 >> %PSFILE%
         echo     } >> %PSFILE%
         echo } >> %PSFILE%
 
-        echo Write-Host ' Storage Account resource validation PASSED' >> %PSFILE%
+        echo Write-Host '✅ Storage Account resource validation PASSED' >> %PSFILE%
 
         REM ===== Execute =====
         powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
@@ -229,22 +229,22 @@ stage('Validate - Storage Account Resourcess') {
             steps {
                 bat '''
                 if not exist azure-adf-e2e\\arm-templates\\data-factory\\factory (
-                    echo  factory folder missing
+                    echo ❌ factory folder missing
                     exit /b 1
                 )
 
                 if not exist azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates (
-                    echo  linkedTemplates folder missing
+                    echo ❌ linkedTemplates folder missing
                     exit /b 1
                 )
 
                 if not exist azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json (
-                    echo  ARMTemplateForFactory.json missing
+                    echo ❌ ARMTemplateForFactory.json missing
                     exit /b 1
                 )
 
                 if not exist azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json (
-                    echo  Parameters file missing
+                    echo ❌ Parameters file missing
                     exit /b 1
                 )
 
@@ -259,7 +259,7 @@ stage('Validate - Storage Account Resourcess') {
                     type %%f >nul || exit /b 1
                 )
 
-                echo  Data Factory structure OK
+                echo ✅ Data Factory structure OK
                 '''
             }
         }
@@ -269,7 +269,7 @@ stage('Validate - Storage Account Resourcess') {
         ====================================================== */
         // stage('ARM Validate - Data Factory') {
         //     steps {
-        //         echo " Performing REAL ARM validation (no deployment)"
+        //         echo "🔐 Performing REAL ARM validation (no deployment)"
 
         //         bat '''
         //         az deployment group validate ^
@@ -285,7 +285,7 @@ stage('Validate - Storage Account Resourcess') {
         // ====================================================== */
         // stage('Publish ARM Artifact') {
         //     steps {
-        //         echo " Publishing ARM templates as CI artifact"
+        //         echo "📦 Publishing ARM templates as CI artifact"
 
         //         archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
         //                          fingerprint: true
