@@ -95,53 +95,63 @@ Pipeline stopped immediately.
            3. Resource Group Template Validation
         ====================================================== */
 
-        stage('Universal ARM Validator') {
+        stage('Validate RG - Basics') {
     steps {
-        powershell '''
-        Write-Host "🔍 Universal ARM validation running..."
+        bat '''
+        @echo off
+        del validate-rg-basic.ps1 2>NUL
 
-        $files = Get-ChildItem -Recurse azure-adf-e2e/arm-templates/*.json |
-                 Where-Object { $_.Name -notmatch 'Parameters' }
+        echo 🔍 Validating RG Template Basics...
 
-        foreach($f in $files){
+        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
+        set PSFILE=validate-rg-basic.ps1
 
-            # ---------- JSON syntax ----------
-            try {
-                $j = Get-Content $f.FullName -Raw | ConvertFrom-Json
-            }
-            catch {
-                Write-Host "Error: line ?, where syntax, which file $($f.Name), what JSON syntax invalid"
-                exit 1
-            }
+        if not exist "%FILE%" (
+            echo Error: line ?, where file-check, which file %FILE%, what file missing
+            exit /b 1
+        )
 
-            # ---------- must have resources ----------
-            if(-not $j.resources){
-                Write-Host "Error: line ?, where resources, which file $($f.Name), what missing resources block"
-                exit 1
-            }
+        REM ===== Build PowerShell validator =====
+        echo $ErrorActionPreference = 'Stop' > %PSFILE%
+        echo $file = '%FILE%' >> %PSFILE%
+        echo $json = Get-Content $file ^| ConvertFrom-Json >> %PSFILE%
 
-            # ---------- each resource must have location ----------
-            foreach($r in $j.resources){
-                if(-not $r.location){
-                    Write-Host "Error: line ?, where location, which file $($f.Name), what resource missing location"
-                    exit 1
-                }
+        echo $expected = @{ >> %PSFILE%
+        echo 'storageAccounts_cftproject_name'='cftproject'; >> %PSFILE%
+        echo 'workspaces_cft_databricks_name'='cft_databricks'; >> %PSFILE%
+        echo 'virtualNetworks_CFT_Virtual_Network_name'='CFT_Virtual_Network'; >> %PSFILE%
+        echo 'accessConnectors_adb_access_connector_name'='adb-access-connector'; >> %PSFILE%
+        echo 'networkSecurityGroups_databricksnsgmuuuizl5pkmwk_name'='databricksnsgmuuuizl5pkmwk'; >> %PSFILE%
+        echo 'userAssignedIdentities_databricks_uami_autoloader_name'='databricks-uami-autoloader' >> %PSFILE%
+        echo } >> %PSFILE%
 
-                if($r.location -notmatch '^[a-z]+'){
-                    Write-Host "Error: line ?, where location, which file $($f.Name), what invalid region format"
-                    exit 1
-                }
-            }
+        echo foreach ($k in $expected.Keys) { >> %PSFILE%
+        echo   $param = $json.parameters[$k] >> %PSFILE%
+        echo   $ln = (Get-Content $file ^| Select-String -SimpleMatch $k ^| Select -First 1).LineNumber >> %PSFILE%
 
-        }
+        echo   if (-not $param) { >> %PSFILE%
+        echo     Write-Host ("Error: line " + $ln + ", where parameter, which file " + $file + ", what missing parameter " + $k) >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
 
-        Write-Host "✅ Universal ARM validation PASSED"
+        echo   if ($param.type -notmatch 'string') { >> %PSFILE%
+        echo     Write-Host ("Error: line " + $ln + ", where datatype, which file " + $file + ", what datatype must be string for " + $k) >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+
+        echo   if ($param.defaultValue -ne $expected[$k]) { >> %PSFILE%
+        echo     Write-Host ("Error: line " + $ln + ", where value, which file " + $file + ", what expected=" + $expected[$k] + " found=" + $param.defaultValue) >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+
+        echo } >> %PSFILE%
+
+        echo Write-Host "✅ RG basic validation PASSED" >> %PSFILE%
+
+        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
 }
-
-
-
 
   /* =====================================================hi
            4. Storage Account Template Validation
