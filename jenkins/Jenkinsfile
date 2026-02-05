@@ -226,6 +226,66 @@ stage('Validate Required Resource Types') {
     }
 }
 
+stage('Validate Region + Subscription + Datatype') {
+    steps {
+        bat '''
+        @echo off
+        del arm-meta-check.ps1 2>NUL
+
+        set PSFILE=arm-meta-check.ps1
+
+        echo $ErrorActionPreference = 'Stop' > %PSFILE%
+        echo $files = Get-ChildItem -Recurse azure-adf-e2e\\arm-templates\\*.json >> %PSFILE%
+
+        echo foreach ($f in $files) { >> %PSFILE%
+        echo   $file = $f.FullName >> %PSFILE%
+
+        echo   try { $json = Get-Content $file -Raw ^| ConvertFrom-Json } catch { continue } >> %PSFILE%
+
+        echo   if (-not $json.resources) { continue } >> %PSFILE%
+
+        REM ---- REGION CHECK ----
+        echo   foreach ($r in $json.resources) { >> %PSFILE%
+        echo     if (-not $r.location) { >> %PSFILE%
+        echo       Write-Host ("Error: line ?, where location, which file " + $f.Name + ", what location missing for resource " + $r.type) >> %PSFILE%
+        echo       exit 1 >> %PSFILE%
+        echo     } >> %PSFILE%
+
+        echo     if ($r.location -notmatch '^[a-z]') { >> %PSFILE%
+        echo       Write-Host ("Error: line ?, where location, which file " + $f.Name + ", what invalid region value " + $r.location) >> %PSFILE%
+        echo       exit 1 >> %PSFILE%
+        echo     } >> %PSFILE%
+        echo   } >> %PSFILE%
+
+        REM ---- PARAMETER DATATYPE CHECK ----
+        echo   if ($json.parameters) { >> %PSFILE%
+        echo     foreach ($p in $json.parameters.PSObject.Properties) { >> %PSFILE%
+        echo       if (-not $p.Value.type) { >> %PSFILE%
+        echo         Write-Host ("Error: line ?, where datatype, which file " + $f.Name + ", what datatype missing for parameter " + $p.Name) >> %PSFILE%
+        echo         exit 1 >> %PSFILE%
+        echo       } >> %PSFILE%
+        echo     } >> %PSFILE%
+        echo   } >> %PSFILE%
+
+        REM ---- SUBSCRIPTION FORMAT CHECK ----
+        echo   $text = Get-Content $file -Raw >> %PSFILE%
+        echo   if ($text -match '/subscriptions/([^/]+)/') { >> %PSFILE%
+        echo     $sub = $matches[1] >> %PSFILE%
+        echo     if ($sub.Length -ne 36) { >> %PSFILE%
+        echo       Write-Host ("Error: line ?, where subscriptionId, which file " + $f.Name + ", what invalid subscription format") >> %PSFILE%
+        echo       exit 1 >> %PSFILE%
+        echo     } >> %PSFILE%
+        echo   } >> %PSFILE%
+
+        echo } >> %PSFILE%
+
+        echo Write-Host "VALIDATION PASSED: Region + Subscription + Datatype" >> %PSFILE%
+
+        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
+        '''
+    }
+}
+
 
 
 
