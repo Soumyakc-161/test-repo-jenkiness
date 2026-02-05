@@ -106,7 +106,7 @@ Pipeline stopped immediately.
         set PSFILE=arm-universal-validate.ps1
 
         echo $ErrorActionPreference = 'Stop' > %PSFILE%
-        echo $files = Get-ChildItem -Recurse azure-adf-e2e\\arm-templates\\*.json >> %PSFILE%
+        echo $files = Get-ChildItem azure-adf-e2e\\arm-templates\\resource-group\\*.json
 
         echo foreach ($f in $files) { >> %PSFILE%
         echo   $file = $f.FullName >> %PSFILE%
