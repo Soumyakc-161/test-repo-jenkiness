@@ -317,7 +317,7 @@ stage('Validate Resource Names + DependsOn') {
         echo   $seen = @{} >> %PSFILE%
 
         echo   foreach ($r in $json.resources) { >> %PSFILE%
-        echo     if ($r.type -match '/'){ continue } >> %PSFILE%
+        echo     if ($rA.type -match '/'){ continue } >> %PSFILE%
         echo     $n = $r.name >> %PSFILE%
         echo     if ($seen[$n]) { >> %PSFILE%
         echo       Write-Host ("Error: line ?, where name, which file " + $f.Name + ", what duplicate top-level resource name " + $n) >> %PSFILE%
@@ -345,6 +345,42 @@ stage('Validate Resource Names + DependsOn') {
     }
 }
 
+stage('Validate ARM Expressions') {
+    steps {
+        bat '''
+        @echo off
+        del arm-expr-check.ps1 2>NUL
+        set PSFILE=arm-expr-check.ps1
+
+        echo $ErrorActionPreference = 'Stop' > %PSFILE%
+        echo $files = Get-ChildItem -Recurse azure-adf-e2e\\arm-templates\\*.json >> %PSFILE%
+
+        echo foreach ($f in $files) { >> %PSFILE%
+        echo   $text = Get-Content $f.FullName -Raw >> %PSFILE%
+
+        echo   $params = @() >> %PSFILE%
+        echo   try { >> %PSFILE%
+        echo     $json = $text ^| ConvertFrom-Json >> %PSFILE%
+        echo     if ($json.parameters) { $params = $json.parameters.PSObject.Properties.Name } >> %PSFILE%
+        echo   } catch { continue } >> %PSFILE%
+
+        echo   $matches = [regex]::Matches($text, "parameters\\('([^']+)'\\)") >> %PSFILE%
+        echo   foreach ($m in $matches) { >> %PSFILE%
+        echo     $p = $m.Groups[1].Value >> %PSFILE%
+        echo     if ($params -notcontains $p) { >> %PSFILE%
+        echo       Write-Host ("Error: line ?, where expression, which file " + $f.Name + ", what unknown parameter reference " + $p) >> %PSFILE%
+        echo       exit 1 >> %PSFILE%
+        echo     } >> %PSFILE%
+        echo   } >> %PSFILE%
+
+        echo } >> %PSFILE%
+
+        echo Write-Host "✅ ARM expression validation PASSED" >> %PSFILE%
+
+        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
+        '''
+    }
+}
 
  
   /* =====================================================hi
