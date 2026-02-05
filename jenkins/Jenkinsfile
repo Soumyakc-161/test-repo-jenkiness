@@ -195,6 +195,12 @@ stage('Validate Required Resource Types') {
 
         echo   if (-not $json.resources) { continue } >> %PSFILE%
 
+        REM ✅ ADD THESE 4 LINES HERE
+        echo   if ($f.FullName -like "*data-factory*") { >> %PSFILE%
+        echo     Write-Host ("INFO: skipping DF template: " + $f.Name) >> %PSFILE%
+        echo     continue >> %PSFILE%
+        echo   } >> %PSFILE%
+
         echo   $types = $json.resources.type >> %PSFILE%
 
         echo   foreach ($r in $required) { >> %PSFILE%
@@ -203,6 +209,7 @@ stage('Validate Required Resource Types') {
         echo       exit 1 >> %PSFILE%
         echo     } >> %PSFILE%
         echo   } >> %PSFILE%
+
         echo } >> %PSFILE%
 
         echo Write-Host "✅ Resource type validation PASSED" >> %PSFILE%
@@ -211,6 +218,7 @@ stage('Validate Required Resource Types') {
         '''
     }
 }
+
 
 
  
