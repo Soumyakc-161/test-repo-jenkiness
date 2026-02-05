@@ -156,6 +156,19 @@ stage('Validate RG - Resources') {
 
         echo $ErrorActionPreference = 'Stop' > %PSFILE%
         echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
+        echo # ---- Resource Group Name validation ---- >> %PSFILE%
+        echo $rgParam = $json.parameters.PSObject.Properties ^| Where-Object { $_.Name -match 'resource.*group.*name' } >> %PSFILE%
+        echo if (-not $rgParam) { >> %PSFILE%
+        echo   $ln = ((Get-Content '%FILE%') ^| Select-String -Pattern 'parameters' ^| Select -First 1).LineNumber >> %PSFILE%
+        echo   Write-Host \"ERROR: Line $ln, File %FILE%, Where ResourceGroupName, What Parameter missing\" >> %PSFILE%
+        echo   exit 1 >> %PSFILE%
+        echo } >> %PSFILE%
+        echo if ([string]::IsNullOrWhiteSpace($rgParam.Value.defaultValue)) { >> %PSFILE%
+        echo   $ln = ((Get-Content '%FILE%') ^| Select-String -SimpleMatch $rgParam.Name ^| Select -First 1).LineNumber >> %PSFILE%
+        echo   Write-Host \"ERROR: Line $ln, File %FILE%, Where $($rgParam.Name), What Default value empty\" >> %PSFILE%
+        echo   exit 1 >> %PSFILE%
+        echo } >> %PSFILE%
+
 
         REM ---- Required resource types ----
         echo $requiredTypes = @( >> %PSFILE%
