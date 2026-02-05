@@ -187,11 +187,12 @@ stage('Validate RG - Resources') {
 
         echo foreach ($type in $requiredTypes) { >> %PSFILE%
         echo   if (-not ($json.resources ^| Where-Object { $_.type -eq $type })) { >> %PSFILE%
-        $ln = ((Get-Content '%FILE%') ^| Select-String -SimpleMatch $type ^| Select -First 1).LineNumber
-        Write-Host "ERROR: Line $ln, File %FILE%, Where $type, What Missing resource type"
+        echo     $ln = ((Get-Content '%FILE%') ^| Select-String -SimpleMatch $type ^| Select -First 1).LineNumber >> %PSFILE%
+        echo     Write-Host \"ERROR: Line $ln, File %FILE%, Where $type, What Resource type missing\" >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
         echo } >> %PSFILE%
+
 
         echo Write-Host '✅ RG resource validation PASSED' >> %PSFILE%
 
