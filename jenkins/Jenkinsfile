@@ -149,6 +149,7 @@ stage('Validate RG - Basics') {
 stage('Validate RG - Resources') {
     steps {
         bat '''
+        @echo off
         echo 🔍 Validating RG Template Resources...
 
         set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
