@@ -140,10 +140,12 @@ Pipeline stopped immediately.
         echo     } >> %PSFILE%
 
         echo     if (-not $r.location) { >> %PSFILE%
-        echo       Write-Host ("Error: line ?, where location, which file " + $file + ", what location missing") >> %PSFILE%
-        echo       exit 1 >> %PSFILE%
+        echo       if ($file -notmatch "linkedTemplates") { >> %PSFILE%
+        echo         Write-Host ("Error: line ?, where location, which file " + $file + ", what location missing") >> %PSFILE%
+        echo         exit 1 >> %PSFILE%
+        echo       } >> %PSFILE%
         echo     } >> %PSFILE%
-        echo   } >> %PSFILE%
+
 
         echo   if ($json.parameters) { >> %PSFILE%
         echo     foreach ($p in $json.parameters.PSObject.Properties) { >> %PSFILE%
