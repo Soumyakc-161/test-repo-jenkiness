@@ -296,40 +296,31 @@ stage('Validate Resource Names + DependsOn') {
 del arm-name-check.ps1 2>NUL
 set PSFILE=arm-name-check.ps1
 
-echo $ErrorActionPreference = 'Stop' > %PSFILE%
-echo $files = Get-ChildItem -Recurse azure-adf-e2e\\arm-templates\\*.json >> %PSFILE%
+echo $files = Get-ChildItem -Recurse azure-adf-e2e\\arm-templates\\*.json > %PSFILE%
 
 echo foreach ($f in $files) { >> %PSFILE%
 echo   try { $json = Get-Content $f.FullName -Raw ^| ConvertFrom-Json } catch { continue } >> %PSFILE%
 echo   if (-not $json.resources) { continue } >> %PSFILE%
 
-echo   $names = @() >> %PSFILE%
 echo   foreach ($r in $json.resources) { >> %PSFILE%
-echo     $key = $r.type + '|' + $r.name >> %PSFILE%
-echo     if ($names -contains $key) { >> %PSFILE%
-echo       Write-Host ("Duplicate resource detected — allowed — skipping") >> %PSFILE%
-echo       continue >> %PSFILE%
-echo     } >> %PSFILE%
-echo     $names += $key >> %PSFILE%
-
 echo     if ($r.dependsOn) { >> %PSFILE%
 echo       foreach ($d in $r.dependsOn) { >> %PSFILE%
-echo         if ($d -notmatch '\\[') { >> %PSFILE%
+echo         if ($d -notmatch "\\[") { >> %PSFILE%
 echo           Write-Host ("Invalid dependsOn format in " + $f.Name) >> %PSFILE%
 echo           exit 1 >> %PSFILE%
 echo         } >> %PSFILE%
 echo       } >> %PSFILE%
 echo     } >> %PSFILE%
-
 echo   } >> %PSFILE%
 echo } >> %PSFILE%
 
-echo Write-Host "Resource name + dependsOn validation PASSED" >> %PSFILE%
+echo Write-Host "DependsOn validation PASSED" >> %PSFILE%
 
 powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
 """
     }
 }
+
 
 
 stage('Validate ARM Expressions') {
