@@ -125,17 +125,22 @@ stage('Validate RG - Basics') {
         echo } >> %PSFILE%
 
         echo foreach ($k in $expected.Keys) { >> %PSFILE%
-        echo   if (-not $json.parameters.$k) { >> %PSFILE%
-        echo     Write-Host \"❌ Missing parameter: $k\" >> %PSFILE%
-        echo     exit 1 >> %PSFILE%
-        echo   } >> %PSFILE%
-        echo   if ($json.parameters.$k.defaultValue -ne $expected[$k]) { >> %PSFILE%
-        echo     $ln = ((Get-Content '%FILE%') ^| Select-String -SimpleMatch $k ^| Select -First 1).LineNumber >> %PSFILE%
-        echo     Write-Host \"ERROR: Line $ln, File %FILE%, Where $k, What Wrong default value\" >> %PSFILE%
+        echo   $param = $json.parameters[$k] >> %PSFILE%
 
+        echo   if (-not $param) { >> %PSFILE%
+        echo     $ln = ((Get-Content '%FILE%') ^| Select-String -SimpleMatch $k ^| Select -First 1).LineNumber >> %PSFILE%
+        echo     Write-Host \"ERROR: Line $ln, File %FILE%, Where parameter:$k, What missing\" >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
+
+        echo   if ($param.defaultValue -ne $expected[$k]) { >> %PSFILE%
+        echo     $ln = ((Get-Content '%FILE%') ^| Select-String -SimpleMatch $k ^| Select -First 1).LineNumber >> %PSFILE%
+        echo     Write-Host \"ERROR: Line $ln, File %FILE%, Where parameter:$k, What wrong default value\" >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+
         echo } >> %PSFILE%
+
 
         echo Write-Host '✅ RG basic validation PASSED' >> %PSFILE%
 
