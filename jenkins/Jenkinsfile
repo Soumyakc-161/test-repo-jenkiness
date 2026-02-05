@@ -184,7 +184,7 @@ stage('Validate RG - Resources') {
     }
 }
 
-  /* =====================================================
+  /* =====================================================hi
            4. Storage Account Template Validation
         ====================================================== */
        stage('Validate - Storage Account Basics') {
