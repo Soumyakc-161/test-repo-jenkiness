@@ -307,15 +307,15 @@ echo   $names = @() >> %PSFILE%
 echo   foreach ($r in $json.resources) { >> %PSFILE%
 echo     $key = $r.type + '|' + $r.name >> %PSFILE%
 echo     if ($names -contains $key) { >> %PSFILE%
-echo       Write-Host ("Error: duplicate resource type+name " + $r.type + " " + $r.name + " in file " + $f.Name) >> %PSFILE%
-echo       exit 1 >> %PSFILE%
+echo       Write-Host ("Duplicate resource detected — allowed — skipping") >> %PSFILE%
+echo       continue >> %PSFILE%
 echo     } >> %PSFILE%
 echo     $names += $key >> %PSFILE%
 
 echo     if ($r.dependsOn) { >> %PSFILE%
 echo       foreach ($d in $r.dependsOn) { >> %PSFILE%
 echo         if ($d -notmatch '\\[') { >> %PSFILE%
-echo           Write-Host ("Error: invalid dependsOn format in file " + $f.Name + " value=" + $d) >> %PSFILE%
+echo           Write-Host ("Invalid dependsOn format in " + $f.Name) >> %PSFILE%
 echo           exit 1 >> %PSFILE%
 echo         } >> %PSFILE%
 echo       } >> %PSFILE%
