@@ -258,7 +258,7 @@ stage('Validate Region + Subscription + Datatype') {
         echo     } >> %PSFILE%
         echo   } >> %PSFILE%
 
-        echo   if ($json.parameters) { >> %PSFILE%
+        echo   if ($json.parameters -and $f.Name -notmatch 'Parameters') { >> %PSFILE%
         echo     foreach ($p in $json.parameters.PSObject.Properties) { >> %PSFILE%
         echo       if (-not $p.Value.type) { >> %PSFILE%
         echo         Write-Host ("Error: line ?, where datatype, which file " + $f.Name + ", what datatype missing for parameter " + $p.Name) >> %PSFILE%
