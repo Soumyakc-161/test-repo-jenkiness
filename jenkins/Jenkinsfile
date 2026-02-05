@@ -184,7 +184,13 @@ stage('Validate RG - Resources') {
     }
 }
 
-stage('Validate - Storage Account Resourcess') {
+
+ /* =====================================================
+           4. Storage - Account Validation
+        ====================================================== */
+
+
+        stage('Validate - Storage Account Resourcess') {
     steps {
         bat '''
         echo 🔍 Validating Storage Account Template - Resources...
