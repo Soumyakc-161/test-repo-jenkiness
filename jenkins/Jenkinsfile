@@ -327,6 +327,7 @@ stage('Validate Resource Names + DependsOn') {
         echo     } >> %PSFILE%
         echo   } >> %PSFILE%
 
+
         echo } >> %PSFILE%
 
         echo Write-Host "Resource name + dependsOn validation PASSED" >> %PSFILE%
