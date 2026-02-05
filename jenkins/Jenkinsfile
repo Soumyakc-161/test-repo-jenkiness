@@ -101,7 +101,7 @@ Pipeline stopped immediately.
         @echo off
         del arm-universal-validate.ps1 2>NUL
 
-        echo Universal ARM validation running...
+        echo 🔍 Universal ARM validation running...
 
         set PSFILE=arm-universal-validate.ps1
 
@@ -134,8 +134,19 @@ Pipeline stopped immediately.
         echo   } >> %PSFILE%
 
         echo   foreach ($r in $json.resources) { >> %PSFILE%
+
         echo     if (-not $r.type) { >> %PSFILE%
-        echo       Write-Host ("Error: line ?, where resource, which file " + $file + ", what resource type missing") >> %PSFILE%
+        echo       Write-Host ("Error: line ?, where type, which file " + $file + ", what resource type missing") >> %PSFILE%
+        echo       exit 1 >> %PSFILE%
+        echo     } >> %PSFILE%
+
+        echo     if (-not $r.apiVersion) { >> %PSFILE%
+        echo       Write-Host ("Error: line ?, where apiVersion, which file " + $file + ", what apiVersion missing") >> %PSFILE%
+        echo       exit 1 >> %PSFILE%
+        echo     } >> %PSFILE%
+
+        echo     if (-not $r.name) { >> %PSFILE%
+        echo       Write-Host ("Error: line ?, where name, which file " + $file + ", what resource name missing") >> %PSFILE%
         echo       exit 1 >> %PSFILE%
         echo     } >> %PSFILE%
 
@@ -146,14 +157,6 @@ Pipeline stopped immediately.
         echo       } >> %PSFILE%
         echo     } >> %PSFILE%
 
-
-        echo   if ($json.parameters) { >> %PSFILE%
-        echo     foreach ($p in $json.parameters.PSObject.Properties) { >> %PSFILE%
-        echo       if (-not $p.Value.type) { >> %PSFILE%
-        echo         Write-Host ("Error: line ?, where datatype, which file " + $file + ", what datatype missing for parameter " + $p.Name) >> %PSFILE%
-        echo         exit 1 >> %PSFILE%
-        echo       } >> %PSFILE%
-        echo     } >> %PSFILE%
         echo   } >> %PSFILE%
 
         echo } >> %PSFILE%
@@ -164,6 +167,7 @@ Pipeline stopped immediately.
         '''
     }
 }
+
 
  
 
