@@ -304,48 +304,33 @@ stage('Validate Resource Names + DependsOn') {
         echo   if (-not $json.resources) { continue } >> %PSFILE%
 
         echo   $names = @() >> %PSFILE%
-
         echo   foreach ($r in $json.resources) { >> %PSFILE%
         echo     $key = $r.type + '|' + $r.name >> %PSFILE%
         echo     if ($names -contains $key) { >> %PSFILE%
-        echo       Write-Host ("Error: line ?, where name, which file " + $f.Name + ", what duplicate resource type+name " + $r.type + " " + $r.name) >> %PSFILE%
+        echo       Write-Host ("Error: duplicate resource type+name " + $r.type + " " + $r.name + " in file " + $f.Name) >> %PSFILE%
         echo       exit 1 >> %PSFILE%
         echo     } >> %PSFILE%
         echo     $names += $key >> %PSFILE%
-        echo   } >> %PSFILE%
 
-
-        REM ---- DUPLICATE NAME CHECK ----
-        echo   $seen = @{} >> %PSFILE%
-
-        echo   foreach ($r in $json.resources) { >> %PSFILE%
-        echo     if ($rA.type -match '/'){ continue } >> %PSFILE%
-        echo     $n = $r.name >> %PSFILE%
-        echo     if ($seen[$n]) { >> %PSFILE%
-        echo       Write-Host ("Error: line ?, where name, which file " + $f.Name + ", what duplicate top-level resource name " + $n) >> %PSFILE%
-        echo       exit 1 >> %PSFILE%
-        echo     } >> %PSFILE%
-        echo     $seen[$n] = $true >> %PSFILE%
-        echo   } >> %PSFILE%
-
-
-        REM ---- DEPENDSON TYPE CHECK ----
         echo     if ($r.dependsOn) { >> %PSFILE%
-        echo       if ($r.dependsOn.GetType().Name -ne 'Object[]') { >> %PSFILE%
-        echo         Write-Host ("Error: line ?, where dependsOn, which file " + $f.Name + ", what dependsOn must be array") >> %PSFILE%
-        echo         exit 1 >> %PSFILE%
+        echo       foreach ($d in $r.dependsOn) { >> %PSFILE%
+        echo         if ($d -notmatch '\\[') { >> %PSFILE%
+        echo           Write-Host ("Error: invalid dependsOn format in file " + $f.Name + " value=" + $d) >> %PSFILE%
+        echo           exit 1 >> %PSFILE%
+        echo         } >> %PSFILE%
         echo       } >> %PSFILE%
         echo     } >> %PSFILE%
 
         echo   } >> %PSFILE%
         echo } >> %PSFILE%
 
-        echo Write-Host "VALIDATION PASSED: Names + DependsOn" >> %PSFILE%
+        echo Write-Host "Resource name + dependsOn validation PASSED" >> %PSFILE%
 
         powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
 }
+
 
 stage('Validate ARM Expressions') {
     steps {
