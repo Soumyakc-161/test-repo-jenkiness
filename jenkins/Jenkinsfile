@@ -126,7 +126,7 @@ Pipeline stopped immediately.
         echo } >> %PSFILE%
 
         echo foreach ($k in $expected.Keys) { >> %PSFILE%
-        echo   $param = $json.parameters[$k] >> %PSFILE%
+        echo   $param = $json.parameters.PSObject.Properties[$k].Value >> %PSFILE%
         echo   $ln = (Get-Content $file ^| Select-String -SimpleMatch $k ^| Select -First 1).LineNumber >> %PSFILE%
 
         echo   if (-not $param) { >> %PSFILE%
