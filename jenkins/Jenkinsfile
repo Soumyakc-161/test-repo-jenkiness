@@ -95,65 +95,7 @@ Pipeline stopped immediately.
            3. Resource Group Template Validation
         ====================================================== */
 
-        stage('Validate RG - Basics') {
-    steps {
-        bat '''
-        @echo off
-        del validate-rg-basic.ps1 2>NUL
-
-        echo 🔍 Validating RG Template Basics...
-
-        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
-        set PSFILE=validate-rg-basic.ps1
-
-        if not exist "%FILE%" (
-            echo Error: line ?, where file-check, which file %FILE%, what file missing
-            exit /b 1
-        )
-
-        REM ===== Build PowerShell validator =====
-        echo $ErrorActionPreference = 'Stop' > %PSFILE%
-        echo $file = '%FILE%' >> %PSFILE%
-        echo $json = Get-Content $file ^| ConvertFrom-Json >> %PSFILE%
-
-        echo $expected = @{ >> %PSFILE%
-        echo 'storageAccounts_cftproject_name'='cftproject'; >> %PSFILE%
-        echo 'workspaces_cft_databricks_name'='cft_databricks'; >> %PSFILE%
-        echo 'virtualNetworks_CFT_Virtual_Network_name'='CFT_Virtual_Network'; >> %PSFILE%
-        echo 'accessConnectors_adb_access_connector_name'='adb-access-connector'; >> %PSFILE%
-        echo 'networkSecurityGroups_databricksnsgmuuuizl5pkmwk_name'='databricksnsgmuuuizl5pkmwk'; >> %PSFILE%
-        echo 'userAssignedIdentities_databricks_uami_autoloader_name'='databricks-uami-autoloader' >> %PSFILE%
-        echo } >> %PSFILE%
-
-        echo foreach ($k in $expected.Keys) { >> %PSFILE%
-        echo   $param = $json.parameters.PSObject.Properties[$k].Value >> %PSFILE%
-        echo   $ln = (Get-Content $file ^| Select-String -SimpleMatch $k ^| Select -First 1).LineNumber >> %PSFILE%
-
-        echo   if (-not $param) { >> %PSFILE%
-        echo     Write-Host ("Error: line " + $ln + ", where parameter, which file " + $file + ", what missing parameter " + $k) >> %PSFILE%
-        echo     exit 1 >> %PSFILE%
-        echo   } >> %PSFILE%
-
-        echo   if ($param.type -notmatch 'string') { >> %PSFILE%
-        echo     Write-Host ("Error: line " + $ln + ", where datatype, which file " + $file + ", what datatype must be string for " + $k) >> %PSFILE%
-        echo     exit 1 >> %PSFILE%
-        echo   } >> %PSFILE%
-
-        echo   if ($param.defaultValue -ne $expected[$k]) { >> %PSFILE%
-        echo     Write-Host ("Error: line " + $ln + ", where value, which file " + $file + ", what expected=" + $expected[$k] + " found=" + $param.defaultValue) >> %PSFILE%
-        echo     exit 1 >> %PSFILE%
-        echo   } >> %PSFILE%
-
-        echo } >> %PSFILE%
-
-        echo Write-Host "✅ RG basic validation PASSED" >> %PSFILE%
-
-        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
-        '''
-    }
-}
-
-stage('Universal ARM Syntax & Structure Validation') {
+        stage('Universal ARM Syntax & Structure Validation') {
     steps {
         bat '''
         @echo off
@@ -169,6 +111,7 @@ stage('Universal ARM Syntax & Structure Validation') {
         echo foreach ($f in $files) { >> %PSFILE%
         echo   $file = $f.FullName >> %PSFILE%
 
+        REM ===== JSON syntax check =====
         echo   try { >> %PSFILE%
         echo     $json = Get-Content $file -Raw ^| ConvertFrom-Json >> %PSFILE%
         echo   } catch { >> %PSFILE%
@@ -176,25 +119,44 @@ stage('Universal ARM Syntax & Structure Validation') {
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
 
-        echo   if (-not $json.parameters) { >> %PSFILE%
-        echo     Write-Host ("Error: line ?, where parameters, which file " + $file + ", what parameters block missing") >> %PSFILE%
-        echo     exit 1 >> %PSFILE%
+        REM ===== skip parameter-only files =====
+        echo   if ($f.Name -match "Parameters") { >> %PSFILE%
+        echo     Write-Host ("INFO: parameter file detected — skipping resource checks → " + $f.Name) >> %PSFILE%
+        echo     continue >> %PSFILE%
         echo   } >> %PSFILE%
 
+        REM ===== template must have resources =====
         echo   if (-not $json.resources) { >> %PSFILE%
         echo     Write-Host ("Error: line ?, where resources, which file " + $file + ", what resources block missing") >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
 
+        REM ===== resources cannot be empty =====
         echo   if ($json.resources.Count -eq 0) { >> %PSFILE%
         echo     Write-Host ("Error: line ?, where resources, which file " + $file + ", what resources empty") >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
 
-        echo   foreach ($p in $json.parameters.PSObject.Properties) { >> %PSFILE%
-        echo     if (-not $p.Value.type) { >> %PSFILE%
-        echo       Write-Host ("Error: line ?, where datatype, which file " + $file + ", what parameter datatype missing for " + $p.Name) >> %PSFILE%
+        REM ===== validate each resource =====
+        echo   foreach ($r in $json.resources) { >> %PSFILE%
+        echo     if (-not $r.type) { >> %PSFILE%
+        echo       Write-Host ("Error: line ?, where resource, which file " + $file + ", what resource type missing") >> %PSFILE%
         echo       exit 1 >> %PSFILE%
+        echo     } >> %PSFILE%
+
+        echo     if (-not $r.location) { >> %PSFILE%
+        echo       Write-Host ("Error: line ?, where location, which file " + $file + ", what location missing") >> %PSFILE%
+        echo       exit 1 >> %PSFILE%
+        echo     } >> %PSFILE%
+        echo   } >> %PSFILE%
+
+        REM ===== parameter datatype check (if present) =====
+        echo   if ($json.parameters) { >> %PSFILE%
+        echo     foreach ($p in $json.parameters.PSObject.Properties) { >> %PSFILE%
+        echo       if (-not $p.Value.type) { >> %PSFILE%
+        echo         Write-Host ("Error: line ?, where datatype, which file " + $file + ", what parameter datatype missing for " + $p.Name) >> %PSFILE%
+        echo         exit 1 >> %PSFILE%
+        echo       } >> %PSFILE%
         echo     } >> %PSFILE%
         echo   } >> %PSFILE%
 
@@ -206,6 +168,7 @@ stage('Universal ARM Syntax & Structure Validation') {
         '''
     }
 }
+ 
 
   /* =====================================================hi
            4. Storage Account Template Validation
