@@ -183,29 +183,36 @@ stage('Validate Required Resource Types') {
         echo $ErrorActionPreference = 'Stop' > %PSFILE%
         echo $files = Get-ChildItem -Recurse azure-adf-e2e\\arm-templates\\*.json >> %PSFILE%
 
-        echo $required = @( >> %PSFILE%
-        echo 'Microsoft.Storage/storageAccounts', >> %PSFILE%
-        echo 'Microsoft.Network/virtualNetworks', >> %PSFILE%
-        echo 'Microsoft.Network/networkSecurityGroups', >> %PSFILE%
-        echo 'Microsoft.Databricks/workspaces' >> %PSFILE%
-        echo ) >> %PSFILE%
-
         echo foreach ($f in $files) { >> %PSFILE%
-        echo   $json = Get-Content $f.FullName -Raw ^| ConvertFrom-Json >> %PSFILE%
+        echo   $name = $f.Name >> %PSFILE%
 
-        echo   if (-not $json.resources) { continue } >> %PSFILE%
-
-        REM ✅ ADD THESE 4 LINES HERE
-        echo   if ($f.FullName -like "*data-factory*") { >> %PSFILE%
-        echo     Write-Host ("INFO: skipping DF template: " + $f.Name) >> %PSFILE%
+        REM ---- skip parameter + DF split templates ----
+        echo   if ($name -match "Parameters" -or $name -like "ArmTemplate_*") { >> %PSFILE%
+        echo     Write-Host ("INFO: skipping template: " + $name) >> %PSFILE%
         echo     continue >> %PSFILE%
         echo   } >> %PSFILE%
 
+        echo   $json = Get-Content $f.FullName -Raw ^| ConvertFrom-Json >> %PSFILE%
+        echo   if (-not $json.resources) { continue } >> %PSFILE%
         echo   $types = $json.resources.type >> %PSFILE%
+
+        REM ---- per-template required types ----
+        echo   if ($name -like "*storage*") { >> %PSFILE%
+        echo     $required = @('Microsoft.Storage/storageAccounts') >> %PSFILE%
+        echo   } elseif ($name -like "*rg*") { >> %PSFILE%
+        echo     $required = @( >> %PSFILE%
+        echo       'Microsoft.Storage/storageAccounts', >> %PSFILE%
+        echo       'Microsoft.Network/virtualNetworks', >> %PSFILE%
+        echo       'Microsoft.Network/networkSecurityGroups', >> %PSFILE%
+        echo       'Microsoft.Databricks/workspaces' >> %PSFILE%
+        echo     ) >> %PSFILE%
+        echo   } else { >> %PSFILE%
+        echo     continue >> %PSFILE%
+        echo   } >> %PSFILE%
 
         echo   foreach ($r in $required) { >> %PSFILE%
         echo     if ($types -notcontains $r) { >> %PSFILE%
-        echo       Write-Host ("Error: line ?, where resources, which file " + $f.Name + ", what missing resource type " + $r) >> %PSFILE%
+        echo       Write-Host ("Error: line ?, where resources, which file " + $name + ", what missing resource type " + $r) >> %PSFILE%
         echo       exit 1 >> %PSFILE%
         echo     } >> %PSFILE%
         echo   } >> %PSFILE%
@@ -218,6 +225,7 @@ stage('Validate Required Resource Types') {
         '''
     }
 }
+
 
 
 
