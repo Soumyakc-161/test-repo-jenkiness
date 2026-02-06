@@ -95,7 +95,7 @@ Pipeline stopped immediately.
            3. Resource Group Template Validation
         ====================================================== */
 
-        stage('Validate Resource Group References') {
+       stage('Validate Resource Group References') {
     steps {
         bat '''
         @echo off
@@ -103,35 +103,37 @@ Pipeline stopped immediately.
 
         > %PSFILE% echo $expected = "cftproject"
         >> %PSFILE% echo $files = Get-ChildItem -Recurse -Filter *.json
-        >> %PSFILE% echo $foundAny = $false
+        >> %PSFILE% echo $found = $false
 
         >> %PSFILE% echo foreach($f in $files){
-        >> %PSFILE% echo   $lines = Get-Content $f.FullName
+        >> %PSFILE% echo  $lines = Get-Content $f.FullName
 
-        >> %PSFILE% echo   for($i=0; $i -lt $lines.Length; $i++){
-        >> %PSFILE% echo     $line = $lines[$i]
+        >> %PSFILE% echo  for($i=0;$i -lt $lines.Length;$i++){
+        >> %PSFILE% echo    $line = $lines[$i]
 
-        >> %PSFILE% echo     if($line -match '/resourceGroups/([^/"]*)'){
-        >> %PSFILE% echo        $foundAny = $true
-        >> %PSFILE% echo        $rg = $Matches[1]
+        :: STRICT RG MATCH — must end with slash or quote
+        >> %PSFILE% echo    if($line -match '/resourceGroups/([A-Za-z0-9._()-]+)/'){
+        >> %PSFILE% echo       $found = $true
+        >> %PSFILE% echo       $rg = $Matches[1]
 
-        >> %PSFILE% echo        if([string]::IsNullOrWhiteSpace($rg)){
-        >> %PSFILE% echo           Write-Host "Error: line=$($i+1) ^| where=resourceGroup ^| file=$($f.FullName) ^| RG is EMPTY"
-        >> %PSFILE% echo           exit 1
-        >> %PSFILE% echo        }
+        >> %PSFILE% echo       if($rg -ne $expected){
+        >> %PSFILE% echo         Write-Host "Error: line=$($i+1) ^| where=resourceGroup ^| file=$($f.FullName) ^| Found=$rg Expected=$expected"
+        >> %PSFILE% echo         exit 1
+        >> %PSFILE% echo       }
+        >> %PSFILE% echo    }
 
-        >> %PSFILE% echo        if($rg -ne $expected){
-        >> %PSFILE% echo           Write-Host "Error: line=$($i+1) ^| where=resourceGroup ^| file=$($f.FullName) ^| Found=$rg Expected=$expected"
-        >> %PSFILE% echo           exit 1
-        >> %PSFILE% echo        }
-        >> %PSFILE% echo     }
+        :: detect truly empty RG
+        >> %PSFILE% echo    if($line -match '/resourceGroups//'){
+        >> %PSFILE% echo       Write-Host "Error: line=$($i+1) ^| where=resourceGroup ^| file=$($f.FullName) ^| RG EMPTY"
+        >> %PSFILE% echo       exit 1
+        >> %PSFILE% echo    }
 
-        >> %PSFILE% echo   }
+        >> %PSFILE% echo  }
         >> %PSFILE% echo }
 
-        >> %PSFILE% echo if(-not $foundAny){
-        >> %PSFILE% echo   Write-Host "Error: line=0 ^| where=resourceGroup ^| file=templates ^| No resourceGroup reference found"
-        >> %PSFILE% echo   exit 1
+        >> %PSFILE% echo if(-not $found){
+        >> %PSFILE% echo  Write-Host "Error: line=0 ^| where=resourceGroup ^| file=templates ^| No RG reference found"
+        >> %PSFILE% echo  exit 1
         >> %PSFILE% echo }
 
         >> %PSFILE% echo Write-Host "Resource Group validation PASSED"
@@ -140,6 +142,7 @@ Pipeline stopped immediately.
         '''
     }
 }
+
 
 
         
