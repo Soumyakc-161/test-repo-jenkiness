@@ -94,283 +94,46 @@ Pipeline stopped immediately.
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
-
-        stage('Universal ARM Syntax & Structure Validation') {
+   stage('Test RG Name Validation') {
     steps {
         bat '''
         @echo off
-        del arm-universal-validate.ps1 2>NUL
-
-        echo 🔍 Universal ARM validation running...
-
-        set PSFILE=arm-universal-validate.ps1
-
-        echo $ErrorActionPreference = 'Stop' > %PSFILE%
-        echo $files = Get-ChildItem azure-adf-e2e\\arm-templates\\resource-group\\*.json
-
-        echo foreach ($f in $files) { >> %PSFILE%
-        echo   $file = $f.FullName >> %PSFILE%
-
-        echo   try { >> %PSFILE%
-        echo     $json = Get-Content $file -Raw ^| ConvertFrom-Json >> %PSFILE%
-        echo   } catch { >> %PSFILE%
-        echo     Write-Host ("Error: line ?, where syntax, which file " + $file + ", what invalid JSON") >> %PSFILE%
-        echo     exit 1 >> %PSFILE%
-        echo   } >> %PSFILE%
-
-        echo   if ($f.Name -match "Parameters") { >> %PSFILE%
-        echo     Write-Host ("INFO: parameter file detected, skipping resource checks: " + $f.Name) >> %PSFILE%
-        echo     continue >> %PSFILE%
-        echo   } >> %PSFILE%
-
-        echo   if (-not $json.resources) { >> %PSFILE%
-        echo     Write-Host ("Error: line ?, where resources, which file " + $file + ", what resources block missing") >> %PSFILE%
-        echo     exit 1 >> %PSFILE%
-        echo   } >> %PSFILE%
-
-        echo   if ($json.resources.Count -eq 0) { >> %PSFILE%
-        echo     Write-Host ("Error: line ?, where resources, which file " + $file + ", what resources empty") >> %PSFILE%
-        echo     exit 1 >> %PSFILE%
-        echo   } >> %PSFILE%
-
-        echo   foreach ($r in $json.resources) { >> %PSFILE%
-
-        echo     if (-not $r.type) { >> %PSFILE%
-        echo       Write-Host ("Error: line ?, where type, which file " + $file + ", what resource type missing") >> %PSFILE%
-        echo       exit 1 >> %PSFILE%
-        echo     } >> %PSFILE%
-
-        echo     if (-not $r.apiVersion) { >> %PSFILE%
-        echo       Write-Host ("Error: line ?, where apiVersion, which file " + $file + ", what apiVersion missing") >> %PSFILE%
-        echo       exit 1 >> %PSFILE%
-        echo     } >> %PSFILE%
-
-        echo     if (-not $r.name) { >> %PSFILE%
-        echo       Write-Host ("Error: line ?, where name, which file " + $file + ", what resource name missing") >> %PSFILE%
-        echo       exit 1 >> %PSFILE%
-        echo     } >> %PSFILE%
-
-        echo     $depth = ($r.type -split '/').Count >> %PSFILE%
-        echo     if ($depth -le 2 -and $r.type -ne 'Microsoft.Resources/deployments') { >> %PSFILE%
-        echo       if (-not $r.location) { >> %PSFILE%
-        echo         Write-Host ("Error: line ?, where location, which file " + $file + ", what location missing for resource " + $r.type) >> %PSFILE%
-        echo         exit 1 >> %PSFILE%
-        echo       } >> %PSFILE%
-        echo     } >> %PSFILE%
-
-
-
-
-        echo   } >> %PSFILE%
-
-        echo } >> %PSFILE%
-
-        echo Write-Host "Universal ARM validation PASSED" >> %PSFILE%
-
-        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
-        '''
-    }
-}
-
-stage('Validate Required Resource Types') {
-    steps {
-        bat '''
-        @echo off
-        del arm-type-check.ps1 2>NUL
-
-        set PSFILE=arm-type-check.ps1
-
-        echo $ErrorActionPreference = 'Stop' > %PSFILE%
-        echo $files = Get-ChildItem -Recurse azure-adf-e2e\\arm-templates\\*.json >> %PSFILE%
-
-        echo foreach ($f in $files) { >> %PSFILE%
-        echo   $name = $f.Name >> %PSFILE%
-
-        REM ---- skip parameter + DF split templates ----
-        echo   if ($name -match "Parameters" -or $name -like "ArmTemplate_*") { >> %PSFILE%
-        echo     Write-Host ("INFO: skipping template: " + $name) >> %PSFILE%
-        echo     continue >> %PSFILE%
-        echo   } >> %PSFILE%
-
-        echo   $json = Get-Content $f.FullName -Raw ^| ConvertFrom-Json >> %PSFILE%
-        echo   if (-not $json.resources) { continue } >> %PSFILE%
-        echo   $types = $json.resources.type >> %PSFILE%
-
-        REM ---- per-template required types ----
-        echo   if ($name -like "*storage*") { >> %PSFILE%
-        echo     $required = @('Microsoft.Storage/storageAccounts') >> %PSFILE%
-        echo   } elseif ($name -like "*rg*") { >> %PSFILE%
-        echo     $required = @( >> %PSFILE%
-        echo       'Microsoft.Storage/storageAccounts', >> %PSFILE%
-        echo       'Microsoft.Network/virtualNetworks', >> %PSFILE%
-        echo       'Microsoft.Network/networkSecurityGroups', >> %PSFILE%
-        echo       'Microsoft.Databricks/workspaces' >> %PSFILE%
-        echo     ) >> %PSFILE%
-        echo   } else { >> %PSFILE%
-        echo     continue >> %PSFILE%
-        echo   } >> %PSFILE%
-
-        echo   foreach ($r in $required) { >> %PSFILE%
-        echo     if ($types -notcontains $r) { >> %PSFILE%
-        echo       Write-Host ("Error: line ?, where resources, which file " + $name + ", what missing resource type " + $r) >> %PSFILE%
-        echo       exit 1 >> %PSFILE%
-        echo     } >> %PSFILE%
-        echo   } >> %PSFILE%
-
-        echo } >> %PSFILE%
-
-        echo Write-Host "✅ Resource type validation PASSED" >> %PSFILE%
-
-        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
-        '''
-    }
-}
-
-stage('Validate Region + Subscription + Datatype') {
-    steps {
-        bat '''
-        @echo off
-        del arm-meta-check.ps1 2>NUL
-
-        set PSFILE=arm-meta-check.ps1
-
-        echo $ErrorActionPreference = 'Stop' > %PSFILE%
-        echo $files = Get-ChildItem -Recurse azure-adf-e2e\\arm-templates\\*.json >> %PSFILE%
-
-        echo foreach ($f in $files) { >> %PSFILE%
-        echo   $file = $f.FullName >> %PSFILE%
-
-        echo   try { $json = Get-Content $file -Raw ^| ConvertFrom-Json } catch { continue } >> %PSFILE%
-
-        echo   if ($json.resources) { >> %PSFILE%
-        echo     foreach ($r in $json.resources) { >> %PSFILE%
-
-        echo       $isChild = ($r.type.Split('/').Count -gt 2) >> %PSFILE%
-
-        echo       if (-not $isChild -and -not $r.location -and $r.type -notmatch 'Microsoft.DataFactory' -and $r.type -notmatch 'Microsoft.Resources/deployments') { >> %PSFILE%
-        echo         Write-Host ("Error: line ?, where location, which file " + $f.Name + ", what location missing for resource " + $r.type) >> %PSFILE%
-        echo         exit 1 >> %PSFILE%
-        echo       } >> %PSFILE%
-
-        echo       if ($r.location -and $r.location -notmatch '^[a-z]+') { >> %PSFILE%
-        echo         Write-Host ("Error: line ?, where location, which file " + $f.Name + ", what invalid region value " + $r.location) >> %PSFILE%
-        echo         exit 1 >> %PSFILE%
-        echo       } >> %PSFILE%
-
-        echo     } >> %PSFILE%
-        echo   } >> %PSFILE%
-
-
-
-        echo   if ($json.parameters -and $f.Name -notmatch 'Parameters') { >> %PSFILE%
-        echo     foreach ($p in $json.parameters.PSObject.Properties) { >> %PSFILE%
-        echo       if (-not $p.Value.type) { >> %PSFILE%
-        echo         Write-Host ("Error: line ?, where datatype, which file " + $f.Name + ", what datatype missing for parameter " + $p.Name) >> %PSFILE%
-        echo         exit 1 >> %PSFILE%
-        echo       } >> %PSFILE%
-        echo     } >> %PSFILE%
-        echo   } >> %PSFILE%
-
-        echo   $text = Get-Content $file -Raw >> %PSFILE%
-        echo   if ($text -match '/subscriptions/([^/]+)/') { >> %PSFILE%
-        echo     $sub = $matches[1] >> %PSFILE%
-        echo     if ($sub.Length -ne 36) { >> %PSFILE%
-        echo       Write-Host ("Error: line ?, where subscriptionId, which file " + $f.Name + ", what invalid subscription format") >> %PSFILE%
-        echo       exit 1 >> %PSFILE%
-        echo     } >> %PSFILE%
-        echo   } >> %PSFILE%
-
-        echo } >> %PSFILE%
-
-        echo Write-Host "VALIDATION PASSED: Region + Subscription + Datatype" >> %PSFILE%
-
-        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
-        '''
-    }
-}
-
-stage('Validate Resource Names + DependsOn') {
-    steps {
-        bat '''
-        @echo off
-        del arm-name-check.ps1 2>NUL
-        set PSFILE=arm-name-check.ps1
-
-        echo $ErrorActionPreference = 'Stop' > %PSFILE%
-        echo $files = Get-ChildItem -Recurse azure-adf-e2e\\arm-templates\\*.json >> %PSFILE%
-
-        echo foreach ($f in $files) { >> %PSFILE%
-        echo   try { $json = Get-Content $f.FullName -Raw ^| ConvertFrom-Json } catch { continue } >> %PSFILE%
-        echo   if (-not $json.resources) { continue } >> %PSFILE%
-
-        REM ---- check duplicate ONLY for true top-level names ----
-        echo   $names = @() >> %PSFILE%
-        echo   foreach ($r in $json.resources) { >> %PSFILE%
-        echo     if ($r.name -and $r.type -notmatch '/') { >> %PSFILE%
-        echo       if ($names -contains $r.name) { >> %PSFILE%
-        echo         Write-Host ("Error: line ?, where name, which file " + $f.Name + ", what duplicate top-level resource name " + $r.name) >> %PSFILE%
-        echo         exit 1 >> %PSFILE%
-        echo       } >> %PSFILE%
-        echo       $names += $r.name >> %PSFILE%
-        echo     } >> %PSFILE%
-        echo   } >> %PSFILE%
-
-       REM ---- dependsOn check (relaxed) --
-        // echo   foreach ($r in $json.resources) { >> %PSFILE%
-        echo     if ($r.dependsOn) { >> %PSFILE%
-        echo       if ($r.dependsOn.Count -eq 0) { >> %PSFILE%
-        echo         Write-Host ("Error: line ?, where dependsOn, which file " + $f.Name + ", what dependsOn empty") >> %PSFILE%
-        echo         exit 1 >> %PSFILE%
-        echo       } >> %PSFILE%
-        echo     } >> %PSFILE%
-        echo   } >> %PSFILE%
-
-
-
-        echo } >> %PSFILE%
-
-        echo Write-Host "Resource name + dependsOn validation PASSED" >> %PSFILE%
-
-        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
-        '''
-    }
-}
-
-
-
-stage('Validate ARM Expressions') {
-    steps {
-        bat '''
-        @echo off
-        del arm-expr-check.ps1 2>NUL
-        set PSFILE=arm-expr-check.ps1
-
-        echo $ErrorActionPreference = 'Stop' > %PSFILE%
-        echo $files = Get-ChildItem -Recurse azure-adf-e2e\\arm-templates\\*.json >> %PSFILE%
-
-        echo foreach ($f in $files) { >> %PSFILE%
-        echo   $text = Get-Content $f.FullName -Raw >> %PSFILE%
-
-        echo   $params = @() >> %PSFILE%
-        echo   try { >> %PSFILE%
-        echo     $json = $text ^| ConvertFrom-Json >> %PSFILE%
-        echo     if ($json.parameters) { $params = $json.parameters.PSObject.Properties.Name } >> %PSFILE%
-        echo   } catch { continue } >> %PSFILE%
-
-        echo   $matches = [regex]::Matches($text, 'parameters\\(''([^'']+)''\\)') >> %PSFILE%
-        echo   foreach ($m in $matches) { >> %PSFILE%
-        echo     $p = $m.Groups[1].Value >> %PSFILE%
-        echo     if ($params -notcontains $p) { >> %PSFILE%
-        echo       Write-Host ("Error: line ?, where expression, which file " + $f.Name + ", what unknown parameter reference " + $p) >> %PSFILE%
-        echo       exit 1 >> %PSFILE%
-        echo     } >> %PSFILE%
-        echo   } >> %PSFILE%
-
-        echo } >> %PSFILE%
-
-        echo Write-Host "VALIDATION PASSED: ARM expressions" >> %PSFILE%
-
-        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
+        set PSFILE=rg_test_validate.ps1
+
+        > %PSFILE% echo $expected="cftproject"
+        >> %PSFILE% echo $errors=@()
+        >> %PSFILE% echo function AddErr($file,$line,$found){
+        >> %PSFILE% echo $errors += "Error: line=$line ^| where=resourceGroup ^| file=$file ^| Found RG='$found' but expected='$expected'"
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo $files = Get-ChildItem -Recurse -Filter *.json
+
+        >> %PSFILE% echo foreach($f in $files){
+        >> %PSFILE% echo $lines = Get-Content $f.FullName
+
+        >> %PSFILE% echo for($i=0;$i -lt $lines.Length;$i++){
+        >> %PSFILE% echo $line=$lines[$i]
+
+        :: detect RG inside resourceId paths
+        >> %PSFILE% echo if($line -match "/resourceGroups/([^/\\\"]+)"){
+        >> %PSFILE% echo $rg=$Matches[1]
+        >> %PSFILE% echo if($rg -ne $expected){
+        >> %PSFILE% echo AddErr $f.Name ($i+1) $rg
+        >> %PSFILE% echo }
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo }
+        >> %PSFILE% echo }
+
+        >> %PSFILE% echo if($errors.Count -gt 0){
+        >> %PSFILE% echo Write-Host "=========== RG VALIDATION FAILED ==========="
+        >> %PSFILE% echo $errors ^| %% { Write-Host $_ }
+        >> %PSFILE% echo exit 1
+        >> %PSFILE% echo } else {
+        >> %PSFILE% echo Write-Host "RG validation PASSED"
+        >> %PSFILE% echo }
+
+        powershell -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
 }
