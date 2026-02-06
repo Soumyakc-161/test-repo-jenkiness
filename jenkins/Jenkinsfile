@@ -100,43 +100,43 @@ Pipeline stopped immediately.
         @echo off
         set PSFILE=rg_test_validate.ps1
 
-        > %PSFILE% echo $expected="cftproject"
-        >> %PSFILE% echo $errors=@()
+        > %PSFILE% echo $expected = "cftproject"
+        >> %PSFILE% echo $errors = @()
         >> %PSFILE% echo function AddErr($file,$line,$found){
-        >> %PSFILE% echo $errors += "Error: line=$line ^| where=resourceGroup ^| file=$file ^| Found RG='$found' but expected='$expected'"
+        >> %PSFILE% echo $errors += "Error: line=$line ^| where=resourceGroup ^| file=$file ^| Found RG=$found but expected=$expected"
         >> %PSFILE% echo }
 
         >> %PSFILE% echo $files = Get-ChildItem -Recurse -Filter *.json
 
         >> %PSFILE% echo foreach($f in $files){
-        >> %PSFILE% echo $lines = Get-Content $f.FullName
+        >> %PSFILE% echo   $lines = Get-Content $f.FullName
+        >> %PSFILE% echo   for($i=0; $i -lt $lines.Length; $i++){
+        >> %PSFILE% echo     $line = $lines[$i]
 
-        >> %PSFILE% echo for($i=0;$i -lt $lines.Length;$i++){
-        >> %PSFILE% echo $line=$lines[$i]
+        :: SAFE REGEX (no quotes inside)
+        >> %PSFILE% echo     if($line -match '/resourceGroups/([A-Za-z0-9._()-]+)'){
+        >> %PSFILE% echo       $rg = $Matches[1]
+        >> %PSFILE% echo       if($rg -ne $expected){
+        >> %PSFILE% echo         AddErr $f.Name ($i+1) $rg
+        >> %PSFILE% echo       }
+        >> %PSFILE% echo     }
 
-        :: detect RG inside resourceId paths
-        >> %PSFILE% echo if($line -match "/resourceGroups/([^/\\\"]+)"){
-        >> %PSFILE% echo $rg=$Matches[1]
-        >> %PSFILE% echo if($rg -ne $expected){
-        >> %PSFILE% echo AddErr $f.Name ($i+1) $rg
-        >> %PSFILE% echo }
-        >> %PSFILE% echo }
-
-        >> %PSFILE% echo }
+        >> %PSFILE% echo   }
         >> %PSFILE% echo }
 
         >> %PSFILE% echo if($errors.Count -gt 0){
-        >> %PSFILE% echo Write-Host "=========== RG VALIDATION FAILED ==========="
-        >> %PSFILE% echo $errors ^| %% { Write-Host $_ }
-        >> %PSFILE% echo exit 1
+        >> %PSFILE% echo   Write-Host "===== RG VALIDATION FAILED ====="
+        >> %PSFILE% echo   $errors ^| %% { Write-Host $_ }
+        >> %PSFILE% echo   exit 1
         >> %PSFILE% echo } else {
-        >> %PSFILE% echo Write-Host "RG validation PASSED"
+        >> %PSFILE% echo   Write-Host "RG validation PASSED"
         >> %PSFILE% echo }
 
         powershell -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
 }
+
 
 
  
