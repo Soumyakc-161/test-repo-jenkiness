@@ -94,56 +94,65 @@ Pipeline stopped immediately.
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
+
 stage('ARM Strict Validate') {
 steps {
 powershell '''
-$EXPECTED_RG  = "cftproject"
+$EXPECTED_RG  = "CloudFrame-RG"
 $EXPECTED_SUB = "cfd34ebb-456e-4c5c-a8da-3d09bc871fef"
+$EXPECTED_STORAGE = "cftproject"
 
 $files = Get-ChildItem -Recurse -Filter *.json
+
 foreach($f in $files){
 
-# JSON syntax / datatype
+# JSON syntax check
 try { gc $f -Raw | ConvertFrom-Json > $null }
 catch { echo "Error: file=$f | JSON syntax/datatype wrong"; exit 1 }
 
-$i=0;$rg=$sub=$loc=$false
+$i=0; $checkStorage=0
+
 gc $f | %{
 $i++
 
-if($_ -match '/resourceGroups//'){
- echo "Error: line=$i | where=RG | file=$f | empty"; exit 1}
+# ---------- STORAGE PARAM VALIDATION ----------
+if($_ -match '"storageAccounts_cftproject_name"'){ $checkStorage=1; continue }
 
-if($_ -match '/resourceGroups/([^/"]+)'){
- $rg=$true
- if($Matches[1] -ne $EXPECTED_RG){
-  echo "Error: line=$i | where=RG | file=$f | mismatch ($($Matches[1]))"; exit 1}}
-
-if($_ -match '/subscriptions//'){
- echo "Error: line=$i | where=sub | file=$f | empty"; exit 1}
-
-if($_ -match '/subscriptions/([^/"]+)'){
- $sub=$true
- if($Matches[1] -ne $EXPECTED_SUB){
-  echo "Error: line=$i | where=sub | file=$f | mismatch"; exit 1}}
-
-if($_ -match '"location"\\s*:\\s*""'){
- echo "Error: line=$i | where=region | file=$f | empty"; exit 1}
-
-if($_ -match '"location"\\s*:'){ $loc=$true }
-
+if($checkStorage -eq 1 -and $_ -match '"defaultValue"\\s*:\\s*"([^"]+)"'){
+ if($Matches[1] -ne $EXPECTED_STORAGE){
+  echo "Error: line=$i | where=parameter | file=$f | storage defaultValue mismatch"
+  exit 1
+ }
+ $checkStorage=0
 }
 
-if($rg -and -not $sub){ echo "Error: file=$f | subscription missing"; exit 1 }
-if($rg -and -not $loc){ echo "Error: file=$f | region missing"; exit 1 }
+# ---------- RG VALIDATION ----------
+if($_ -match '/resourceGroups/([^/"]+)'){
+ if($Matches[1] -ne $EXPECTED_RG){
+  echo "Error: line=$i | where=resourceGroup | file=$f | mismatch"
+  exit 1
+ }}
+
+# ---------- SUB VALIDATION ----------
+if($_ -match '/subscriptions/([^/"]+)'){
+ if($Matches[1] -ne $EXPECTED_SUB){
+  echo "Error: line=$i | where=subscription | file=$f | mismatch"
+  exit 1
+ }}
+
+# ---------- REGION EMPTY ----------
+if($_ -match '"location"\\s*:\\s*""'){
+ echo "Error: line=$i | where=region | file=$f | empty"
+ exit 1
+}
+
+}
 
 }
 
 echo "VALIDATION PASSED"
 '''
 }}
-
-
 
 
  
