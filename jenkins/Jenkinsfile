@@ -94,40 +94,34 @@ Pipeline stopped immediately.
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
-stage('Validate Resource Group References') {
+stage('Validate RG') {
     steps {
         powershell '''
-$rgFile = Get-ChildItem -Recurse -Filter rg.json | Select-Object -First 1
-if(-not $rgFile){
-    Write-Host "Error: line=0 | where=file | file=rg.json | File missing"
-    exit 1
-}
+$f = Get-ChildItem -Recurse -Filter rg.json | Select-Object -First 1
+if(!$f){ Write-Host "Error: line=0 | where=file | file=rg.json | missing"; exit 1 }
 
-$lines = Get-Content $rgFile.FullName
 $rgFound = $false
+$i = 0
+Get-Content $f.FullName | ForEach-Object {
+  $i++
 
-for($i=0; $i -lt $lines.Count; $i++){
-    $line = $lines[$i]
+  if($_ -match '/resourceGroups//'){
+    Write-Host "Error: line=$i | where=resourceGroup | file=$($f.FullName) | EMPTY"
+    exit 1
+  }
 
-    if($line -match '/resourceGroups//'){
-        Write-Host "Error: line=$($i+1) | where=resourceGroup | file=$($rgFile.FullName) | RG EMPTY"
-        exit 1
+  if($_ -match '/resourceGroups/([^/"]+)/providers'){
+    $rgFound = $true
+    if($Matches[1] -notmatch '^[A-Za-z0-9._()-]+$'){
+      Write-Host "Error: line=$i | where=resourceGroup | file=$($f.FullName) | invalid name"
+      exit 1
     }
-
-    if($line -match '/resourceGroups/([^/"]+)/providers'){
-        $rgFound = $true
-        $rg = $Matches[1]
-
-        if($rg -notmatch '^[A-Za-z0-9._()-]+$'){
-            Write-Host "Error: line=$($i+1) | where=resourceGroup | file=$($rgFile.FullName) | RG spelling invalid: $rg"
-            exit 1
-        }
-    }
+  }
 }
 
 if(-not $rgFound){
-    Write-Host "Error: line=0 | where=resourceGroup | file=$($rgFile.FullName) | RG reference missing"
-    exit 1
+  Write-Host "Error: line=0 | where=resourceGroup | file=$($f.FullName) | missing"
+  exit 1
 }
 
 Write-Host "RG validation PASSED"
