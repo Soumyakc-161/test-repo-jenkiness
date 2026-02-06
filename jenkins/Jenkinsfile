@@ -96,49 +96,46 @@ Pipeline stopped immediately.
         ====================================================== */
 stage('Validate Resource Group References') {
     steps {
-        bat '''
-        @echo off
-        set PSFILE=rg_fix_check.ps1
+        powershell '''
+$rgFile = Get-ChildItem -Recurse -Filter rg.json | Select-Object -First 1
+if(-not $rgFile){
+    Write-Host "Error: line=0 | where=file | file=rg.json | File missing"
+    exit 1
+}
 
-        > %PSFILE% echo $file = Get-ChildItem -Recurse -Filter rg.json ^| Select-Object -First 1
-        >> %PSFILE% echo if(!$file){ Write-Host "Error: line=0 ^| where=file ^| file=rg.json ^| File missing"; exit 1 }
+$lines = Get-Content $rgFile.FullName
+$rgFound = $false
 
-        >> %PSFILE% echo $lines = Get-Content $file.FullName
-        >> %PSFILE% echo $rgFound = $false
+for($i=0; $i -lt $lines.Count; $i++){
+    $line = $lines[$i]
 
-        >> %PSFILE% echo for($i=0;$i -lt $lines.Length;$i++){
-        >> %PSFILE% echo   $line = $lines[$i]
+    # EMPTY RG
+    if($line -match '/resourceGroups//'){
+        Write-Host "Error: line=$($i+1) | where=resourceGroup | file=$($rgFile.FullName) | RG EMPTY"
+        exit 1
+    }
 
-        :: EMPTY check
-        >> %PSFILE% echo   if($line -match '/resourceGroups//'){
-        >> %PSFILE% echo     Write-Host "Error: line=$($i+1) ^| where=resourceGroup ^| file=$($file.FullName) ^| RG EMPTY"
-        >> %PSFILE% echo     exit 1
-        >> %PSFILE% echo   }
+    # MATCH YOUR REAL TEMPLATE PATTERN
+    if($line -match '/resourceGroups/([^/"]+)/providers'){
+        $rgFound = $true
+        $rg = $Matches[1]
 
-        :: REAL pattern — matches your template
-        >> %PSFILE% echo   if($line -match '/resourceGroups/([^/"]+)/providers'){
-        >> %PSFILE% echo     $rgFound = $true
-        >> %PSFILE% echo     $rg = $Matches[1]
+        if($rg -notmatch '^[A-Za-z0-9._()-]+$'){
+            Write-Host "Error: line=$($i+1) | where=resourceGroup | file=$($rgFile.FullName) | RG spelling invalid: $rg"
+            exit 1
+        }
 
-        >> %PSFILE% echo     if($rg -notmatch '^[A-Za-z0-9._()-]+$'){
-        >> %PSFILE% echo       Write-Host "Error: line=$($i+1) ^| where=resourceGroup ^| file=$($file.FullName) ^| RG spelling invalid: $rg"
-        >> %PSFILE% echo       exit 1
-        >> %PSFILE% echo     }
+        Write-Host "RG OK at line $($i+1): $rg"
+    }
+}
 
-        >> %PSFILE% echo     Write-Host "RG OK at line $($i+1): $rg"
-        >> %PSFILE% echo   }
+if(-not $rgFound){
+    Write-Host "Error: line=0 | where=resourceGroup | file=$($rgFile.FullName) | RG reference missing"
+    exit 1
+}
 
-        >> %PSFILE% echo }
-
-        >> %PSFILE% echo if(-not $rgFound){
-        >> %PSFILE% echo   Write-Host "Error: line=0 ^| where=resourceGroup ^| file=$($file.FullName) ^| RG reference missing"
-        >> %PSFILE% echo   exit 1
-        >> %PSFILE% echo }
-
-        >> %PSFILE% echo Write-Host "RG validation PASSED"
-
-        powershell -ExecutionPolicy Bypass -File %PSFILE%
-        '''
+Write-Host "RG validation PASSED"
+'''
     }
 }
 
