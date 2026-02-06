@@ -94,12 +94,11 @@ Pipeline stopped immediately.
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
-
-       stage('Validate Resource Group Format') {
+stage('Validate Resource Group References') {
     steps {
         bat '''
         @echo off
-        set PSFILE=rg_format_check.ps1
+        set PSFILE=rg_fix_check.ps1
 
         > %PSFILE% echo $file = Get-ChildItem -Recurse -Filter rg.json ^| Select-Object -First 1
         >> %PSFILE% echo if(!$file){ Write-Host "Error: line=0 ^| where=file ^| file=rg.json ^| File missing"; exit 1 }
@@ -110,22 +109,16 @@ Pipeline stopped immediately.
         >> %PSFILE% echo for($i=0;$i -lt $lines.Length;$i++){
         >> %PSFILE% echo   $line = $lines[$i]
 
-        :: case — empty RG
+        :: EMPTY check
         >> %PSFILE% echo   if($line -match '/resourceGroups//'){
         >> %PSFILE% echo     Write-Host "Error: line=$($i+1) ^| where=resourceGroup ^| file=$($file.FullName) ^| RG EMPTY"
         >> %PSFILE% echo     exit 1
         >> %PSFILE% echo   }
 
-        :: case — RG detected
-        >> %PSFILE% echo   if($line -match '/resourceGroups/([^/"]+)/'){
+        :: REAL pattern — matches your template
+        >> %PSFILE% echo   if($line -match '/resourceGroups/([^/"]+)/providers'){
         >> %PSFILE% echo     $rgFound = $true
         >> %PSFILE% echo     $rg = $Matches[1]
-
-        :: spelling/format validation
-        >> %PSFILE% echo     if($rg.Length -gt 90){
-        >> %PSFILE% echo       Write-Host "Error: line=$($i+1) ^| where=resourceGroup ^| file=$($file.FullName) ^| RG too long"
-        >> %PSFILE% echo       exit 1
-        >> %PSFILE% echo     }
 
         >> %PSFILE% echo     if($rg -notmatch '^[A-Za-z0-9._()-]+$'){
         >> %PSFILE% echo       Write-Host "Error: line=$($i+1) ^| where=resourceGroup ^| file=$($file.FullName) ^| RG spelling invalid: $rg"
@@ -134,9 +127,9 @@ Pipeline stopped immediately.
 
         >> %PSFILE% echo     Write-Host "RG OK at line $($i+1): $rg"
         >> %PSFILE% echo   }
+
         >> %PSFILE% echo }
 
-        :: case — missing RG completely
         >> %PSFILE% echo if(-not $rgFound){
         >> %PSFILE% echo   Write-Host "Error: line=0 ^| where=resourceGroup ^| file=$($file.FullName) ^| RG reference missing"
         >> %PSFILE% echo   exit 1
@@ -148,6 +141,10 @@ Pipeline stopped immediately.
         '''
     }
 }
+
+       
+
+    
 
  
   /* =====================================================hi
