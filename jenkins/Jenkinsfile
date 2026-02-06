@@ -94,59 +94,56 @@ Pipeline stopped immediately.
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
-   
 
-        stage('Validate RG in rg.json') {
+        stage('Validate Resource Group References') {
     steps {
         bat '''
         @echo off
-        set PSFILE=rg_file_validate.ps1
+        set PSFILE=rg_validate.ps1
 
-        > %PSFILE% echo $file = "rg.json"
-        >> %PSFILE% echo $expected = "cftproject"
-        >> %PSFILE% echo if(!(Test-Path $file)){ Write-Host "Error: line=0 ^| where=file ^| file=rg.json ^| File not found"; exit 1 }
+        > %PSFILE% echo $expected = "cftproject"
+        >> %PSFILE% echo $files = Get-ChildItem -Recurse -Filter *.json
+        >> %PSFILE% echo $foundAny = $false
 
-        >> %PSFILE% echo $lines = Get-Content $file
-        >> %PSFILE% echo $foundRG = $false
+        >> %PSFILE% echo foreach($f in $files){
+        >> %PSFILE% echo   $lines = Get-Content $f.FullName
 
-        >> %PSFILE% echo for($i=0;$i -lt $lines.Length;$i++){
-        >> %PSFILE% echo   $line = $lines[$i]
+        >> %PSFILE% echo   for($i=0; $i -lt $lines.Length; $i++){
+        >> %PSFILE% echo     $line = $lines[$i]
 
-        >> %PSFILE% echo   if($line -match '"type"\\s*:\\s*"Microsoft.Resources/resourceGroups"'){
-        >> %PSFILE% echo       $foundRG = $true
-        >> %PSFILE% echo   }
+        >> %PSFILE% echo     if($line -match '/resourceGroups/([^/"]*)'){
+        >> %PSFILE% echo        $foundAny = $true
+        >> %PSFILE% echo        $rg = $Matches[1]
 
-        >> %PSFILE% echo   if($line -match '"name"\\s*:\\s*"([^"]+)"'){
-        >> %PSFILE% echo       $rg = $Matches[1]
+        >> %PSFILE% echo        if([string]::IsNullOrWhiteSpace($rg)){
+        >> %PSFILE% echo           Write-Host "Error: line=$($i+1) ^| where=resourceGroup ^| file=$($f.FullName) ^| RG is EMPTY"
+        >> %PSFILE% echo           exit 1
+        >> %PSFILE% echo        }
 
-        >> %PSFILE% echo       if([string]::IsNullOrWhiteSpace($rg)){
-        >> %PSFILE% echo         Write-Host "Error: line=$($i+1) ^| where=name ^| file=rg.json ^| RG name EMPTY"
-        >> %PSFILE% echo         exit 1
-        >> %PSFILE% echo       }
+        >> %PSFILE% echo        if($rg -ne $expected){
+        >> %PSFILE% echo           Write-Host "Error: line=$($i+1) ^| where=resourceGroup ^| file=$($f.FullName) ^| Found=$rg Expected=$expected"
+        >> %PSFILE% echo           exit 1
+        >> %PSFILE% echo        }
+        >> %PSFILE% echo     }
 
-        >> %PSFILE% echo       if($rg -notmatch '^[A-Za-z0-9._()-]{1,90}$'){
-        >> %PSFILE% echo         Write-Host "Error: line=$($i+1) ^| where=name ^| file=rg.json ^| RG invalid format: $rg"
-        >> %PSFILE% echo         exit 1
-        >> %PSFILE% echo       }
-
-        >> %PSFILE% echo       if($rg -ne $expected){
-        >> %PSFILE% echo         Write-Host "Error: line=$($i+1) ^| where=name ^| file=rg.json ^| RG spelling mismatch: found=$rg expected=$expected"
-        >> %PSFILE% echo         exit 1
-        >> %PSFILE% echo       }
         >> %PSFILE% echo   }
         >> %PSFILE% echo }
 
-        >> %PSFILE% echo if(-not $foundRG){
-        >> %PSFILE% echo Write-Host "Error: line=0 ^| where=type ^| file=rg.json ^| ResourceGroup resource block missing"
-        >> %PSFILE% echo exit 1
+        >> %PSFILE% echo if(-not $foundAny){
+        >> %PSFILE% echo   Write-Host "Error: line=0 ^| where=resourceGroup ^| file=templates ^| No resourceGroup reference found"
+        >> %PSFILE% echo   exit 1
         >> %PSFILE% echo }
 
-        >> %PSFILE% echo Write-Host "RG validation PASSED"
+        >> %PSFILE% echo Write-Host "Resource Group validation PASSED"
 
         powershell -ExecutionPolicy Bypass -File %PSFILE%
         '''
     }
 }
+
+
+        
+
 
 
 
