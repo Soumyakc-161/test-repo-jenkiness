@@ -109,13 +109,11 @@ $rgFound = $false
 for($i=0; $i -lt $lines.Count; $i++){
     $line = $lines[$i]
 
-    # EMPTY RG
     if($line -match '/resourceGroups//'){
         Write-Host "Error: line=$($i+1) | where=resourceGroup | file=$($rgFile.FullName) | RG EMPTY"
         exit 1
     }
 
-    # MATCH YOUR REAL TEMPLATE PATTERN
     if($line -match '/resourceGroups/([^/"]+)/providers'){
         $rgFound = $true
         $rg = $Matches[1]
@@ -124,8 +122,6 @@ for($i=0; $i -lt $lines.Count; $i++){
             Write-Host "Error: line=$($i+1) | where=resourceGroup | file=$($rgFile.FullName) | RG spelling invalid: $rg"
             exit 1
         }
-
-        Write-Host "RG OK at line $($i+1): $rg"
     }
 }
 
