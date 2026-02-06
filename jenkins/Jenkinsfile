@@ -94,74 +94,54 @@ Pipeline stopped immediately.
         /* =====================================================
            3. Resource Group Template Validation
         ====================================================== */
-stage('Validate RG') {
-    steps {
-        powershell '''
-$f = Get-ChildItem -Recurse -Filter rg.json | Select-Object -First 1
-if(!$f){ Write-Host "Error: line=0 | where=file | file=rg.json | missing"; exit 1 }
 
-$rgFound = $false
-$i = 0
-Get-Content $f.FullName | ForEach-Object {
-  $i++
+        stage('ARM Template Validate') {
+steps {
+powershell '''
+$files = Get-ChildItem -Recurse -Filter *.json
+foreach($f in $files){
 
-  if($_ -match '/resourceGroups//'){
-    Write-Host "Error: line=$i | where=resourceGroup | file=$($f.FullName) | EMPTY"
-    exit 1
-  }
+# JSON syntax / datatype check
+try { gc $f -Raw | ConvertFrom-Json > $null }
+catch { echo "Error: file=$f | JSON syntax/datatype wrong"; exit 1 }
 
-  if($_ -match '/resourceGroups/([^/"]+)/providers'){
-    $rgFound = $true
-    if($Matches[1] -notmatch '^[A-Za-z0-9._()-]+$'){
-      Write-Host "Error: line=$i | where=resourceGroup | file=$($f.FullName) | invalid name"
-      exit 1
-    }
-  }
+$i=0;$rg=$sub=$loc=$false
+gc $f | %{
+$i++
+
+if($_ -match '/resourceGroups//'){
+ echo "Error: line=$i | where=RG | file=$f | empty"; exit 1}
+
+if($_ -match '/resourceGroups/([^/"]+)'){
+ $rg=$true
+ if($Matches[1] -notmatch '^[A-Za-z0-9._()-]+$'){
+  echo "Error: line=$i | where=RG | file=$f | spelling"; exit 1}}
+
+if($_ -match '/subscriptions//'){
+ echo "Error: line=$i | where=sub | file=$f | empty"; exit 1}
+
+if($_ -match '/subscriptions/([^/"]+)'){
+ $sub=$true
+ if($Matches[1] -notmatch '^[0-9a-fA-F-]{36}$'){
+  echo "Error: line=$i | where=sub | file=$f | format"; exit 1}}
+
+if($_ -match '"location"\\s*:\\s*""'){
+ echo "Error: line=$i | where=region | file=$f | empty"; exit 1}
+
+if($_ -match '"location"\\s*:'){ $loc=$true }
+
 }
 
-if(-not $rgFound){
-  Write-Host "Error: line=0 | where=resourceGroup | file=$($f.FullName) | missing"
-  exit 1
+if($rg -and -not $sub){ echo "Error: file=$f | subscription missing"; exit 1 }
+if($rg -and -not $loc){ echo "Error: file=$f | region missing"; exit 1 }
+
 }
 
-Write-Host "RG validation PASSED"
+echo "ARM validation PASSED"
 '''
-    }
-}
-stage('Validate SubscriptionId') {
-    steps {
-        powershell '''
-$f = Get-ChildItem -Recurse -Filter rg.json | Select-Object -First 1
-if(!$f){ Write-Host "Error: line=0 | where=file | file=rg.json | missing"; exit 1 }
+}}
 
-$subFound = $false
-$i = 0
-Get-Content $f.FullName | ForEach-Object {
-  $i++
 
-  if($_ -match '/subscriptions//'){
-    Write-Host "Error: line=$i | where=subscription | file=$($f.FullName) | EMPTY"
-    exit 1
-  }
-
-  if($_ -match '/subscriptions/([^/"]+)/'){
-    $subFound = $true
-    if($Matches[1] -notmatch '^[0-9a-fA-F-]{36}$'){
-      Write-Host "Error: line=$i | where=subscription | file=$($f.FullName) | invalid format"
-      exit 1
-    }
-  }
-}
-
-if(-not $subFound){
-  Write-Host "Error: line=0 | where=subscription | file=$($f.FullName) | missing"
-  exit 1
-}
-
-Write-Host "Subscription validation PASSED"
-'''
-    }
-}
 
  
   /* =====================================================hi
