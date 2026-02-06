@@ -128,10 +128,40 @@ Write-Host "RG validation PASSED"
 '''
     }
 }
+stage('Validate SubscriptionId') {
+    steps {
+        powershell '''
+$f = Get-ChildItem -Recurse -Filter rg.json | Select-Object -First 1
+if(!$f){ Write-Host "Error: line=0 | where=file | file=rg.json | missing"; exit 1 }
 
-       
+$subFound = $false
+$i = 0
+Get-Content $f.FullName | ForEach-Object {
+  $i++
 
-    
+  if($_ -match '/subscriptions//'){
+    Write-Host "Error: line=$i | where=subscription | file=$($f.FullName) | EMPTY"
+    exit 1
+  }
+
+  if($_ -match '/subscriptions/([^/"]+)/'){
+    $subFound = $true
+    if($Matches[1] -notmatch '^[0-9a-fA-F-]{36}$'){
+      Write-Host "Error: line=$i | where=subscription | file=$($f.FullName) | invalid format"
+      exit 1
+    }
+  }
+}
+
+if(-not $subFound){
+  Write-Host "Error: line=0 | where=subscription | file=$($f.FullName) | missing"
+  exit 1
+}
+
+Write-Host "Subscription validation PASSED"
+'''
+    }
+}
 
  
   /* =====================================================hi
