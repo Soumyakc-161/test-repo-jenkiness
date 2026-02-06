@@ -315,7 +315,7 @@ stage('Validate Resource Names + DependsOn') {
         echo     } >> %PSFILE%
         echo   } >> %PSFILE%
 
-       REM ---- dependsOn check (relaxed) ----
+       REM ---- dependsOn check (relaxed) --
         // echo   foreach ($r in $json.resources) { >> %PSFILE%
         echo     if ($r.dependsOn) { >> %PSFILE%
         echo       if ($r.dependsOn.Count -eq 0) { >> %PSFILE%
