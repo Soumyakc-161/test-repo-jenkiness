@@ -95,64 +95,95 @@ Pipeline stopped immediately.
            3. Resource Group Template Validation
         ====================================================== */
 
-stage('ARM Strict Validate') {
-steps {
-powershell '''
-$EXPECTED_RG  = "CloudFrame-RG"
-$EXPECTED_SUB = "cfd34ebb-456e-4c5c-a8da-3d09bc871fef"
-$EXPECTED_STORAGE = "cftproject"
+// Validate RG – Basics (Parameters & Names)
 
-$files = Get-ChildItem -Recurse -Filter *.json
+stage('Validate RG - Basics') {
+    steps {
+        bat '''
+        echo 🔍 Validating RG Template Basics...
 
-foreach($f in $files){
+        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
+        set PSFILE=validate-rg-basic.ps1
 
-# JSON syntax check
-try { gc $f -Raw | ConvertFrom-Json > $null }
-catch { echo "Error: file=$f | JSON syntax/datatype wrong"; exit 1 }
+        REM ===== File exists =====
+        if not exist %FILE% (
+            echo ❌ rg.json missing
+            exit /b 1
+        )
 
-$i=0; $checkStorage=0
+        REM ===== Create PowerShell script =====
+        echo $ErrorActionPreference = 'Stop' > %PSFILE%
+        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
 
-gc $f | %{
-$i++
+        REM ---- Required parameters + strict values ----
+        echo $expected = @{ >> %PSFILE%
+        echo 'storageAccounts_cftproject_name'='cftproject'; >> %PSFILE%
+        echo 'workspaces_cft_databricks_name'='cft_databricks'; >> %PSFILE%
+        echo 'virtualNetworks_CFT_Virtual_Network_name'='CFT_Virtual_Network'; >> %PSFILE%
+        echo 'accessConnectors_adb_access_connector_name'='adb-access-connector'; >> %PSFILE%
+        echo 'networkSecurityGroups_databricksnsgmuuuizl5pkmwk_name'='databricksnsgmuuuizl5pkmwk'; >> %PSFILE%
+        echo 'userAssignedIdentities_databricks_uami_autoloader_name'='databricks-uami-autoloader' >> %PSFILE%
+        echo } >> %PSFILE%
 
-# ---------- STORAGE PARAM VALIDATION ----------
-if($_ -match '"storageAccounts_cftproject_name"'){ $checkStorage=1; continue }
+        echo foreach ($k in $expected.Keys) { >> %PSFILE%
+        echo   if (-not $json.parameters.$k) { >> %PSFILE%
+        echo     Write-Host \"❌ Missing parameter: $k\" >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+        echo   if ($json.parameters.$k.defaultValue -ne $expected[$k]) { >> %PSFILE%
+        echo     Write-Host \"❌ Wrong default value for $k\" >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+        echo } >> %PSFILE%
 
-if($checkStorage -eq 1 -and $_ -match '"defaultValue"\\s*:\\s*"([^"]+)"'){
- if($Matches[1] -ne $EXPECTED_STORAGE){
-  echo "Error: line=$i | where=parameter | file=$f | storage defaultValue mismatch"
-  exit 1
- }
- $checkStorage=0
+        echo Write-Host '✅ RG basic validation PASSED' >> %PSFILE%
+
+        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
+        '''
+    }
 }
 
-# ---------- RG VALIDATION ----------
-if($_ -match '/resourceGroups/([^/"]+)'){
- if($Matches[1] -ne $EXPECTED_RG){
-  echo "Error: line=$i | where=resourceGroup | file=$f | mismatch"
-  exit 1
- }}
+// Validate RG – Resource Types
 
-# ---------- SUB VALIDATION ----------
-if($_ -match '/subscriptions/([^/"]+)'){
- if($Matches[1] -ne $EXPECTED_SUB){
-  echo "Error: line=$i | where=subscription | file=$f | mismatch"
-  exit 1
- }}
+stage('Validate RG - Resources') {
+    steps {
+        bat '''
+        echo 🔍 Validating RG Template Resources...
 
-# ---------- REGION EMPTY ----------
-if($_ -match '"location"\\s*:\\s*""'){
- echo "Error: line=$i | where=region | file=$f | empty"
- exit 1
+        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
+        set PSFILE=validate-rg-resources.ps1
+
+        echo $ErrorActionPreference = 'Stop' > %PSFILE%
+        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
+
+        REM ---- Required resource types ----
+        echo $requiredTypes = @( >> %PSFILE%
+        echo 'Microsoft.Databricks/workspaces', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts', >> %PSFILE%
+        echo 'Microsoft.Network/virtualNetworks', >> %PSFILE%
+        echo 'Microsoft.Network/networkSecurityGroups', >> %PSFILE%
+        echo 'Microsoft.ManagedIdentity/userAssignedIdentities', >> %PSFILE%
+        echo 'Microsoft.Databricks/accessConnectors', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/blobServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/fileServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/queueServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/tableServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/blobServices/containers' >> %PSFILE%
+        echo ) >> %PSFILE%
+
+        echo foreach ($type in $requiredTypes) { >> %PSFILE%
+        echo   if (-not ($json.resources ^| Where-Object { $_.type -eq $type })) { >> %PSFILE%
+        echo     Write-Host \"❌ Missing resource type: $type\" >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+        echo } >> %PSFILE%
+
+        echo Write-Host '✅ RG resource validation PASSED' >> %PSFILE%
+
+        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
+        '''
+    }
 }
-
-}
-
-}
-
-echo "VALIDATION PASSED"
-'''
-}}
 
 
  
@@ -298,13 +329,13 @@ bat '''
         /* =====================================================
         //    7. Publish ARM Templates as Artifact
         // ====================================================== */
-        // stage('Publish ARM Artifact') {
-        //     steps {
-        //         echo "📦 Publishing ARM templates as CI artifact"
+         stage('Publish ARM Artifact') {
+             steps {
+                 echo "📦 Publishing ARM templates as CI artifact"
 
-        //         archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
-        //                          fingerprint: true
-        //     }
-        // }
+                 archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
+                                  fingerprint: true
+             }
+         }
     }
 }
