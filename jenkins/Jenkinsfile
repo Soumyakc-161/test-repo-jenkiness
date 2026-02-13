@@ -91,9 +91,9 @@ Pipeline stopped immediately.
             }
         }
 
-        /* =====================================================
+       /* =====================================================
            3. Resource Group Template Validation
-        ====================================================== */
+====================================================== */
 
 // Validate RG(Parameters & Names)
 
@@ -134,6 +134,14 @@ stage('Validate RG - Basics') {
         echo     Write-Host \" Wrong default value for $k\" >> %PSFILE%
         echo     exit 1 >> %PSFILE%
         echo   } >> %PSFILE%
+        echo } >> %PSFILE%
+
+        REM ===== Subscription ID validation  =====
+        echo $subId = 'cfd34ebb-456e-4c5c-a8da-3d09bc871fef' >> %PSFILE%
+        echo $raw = Get-Content '%FILE%' -Raw >> %PSFILE%
+        echo if ($raw -notmatch $subId) { >> %PSFILE%
+        echo   Write-Host \" Subscription ID not found or incorrect\" >> %PSFILE%
+        echo   exit 1 >> %PSFILE%
         echo } >> %PSFILE%
 
         echo Write-Host 'RG basic validation PASSED' >> %PSFILE%
@@ -184,6 +192,7 @@ stage('Validate RG - Resources') {
         '''
     }
 }
+
 
 
  
