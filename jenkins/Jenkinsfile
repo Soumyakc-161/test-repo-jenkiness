@@ -136,13 +136,14 @@ stage('Validate RG - Basics') {
         echo   } >> %PSFILE%
         echo } >> %PSFILE%
 
-        REM ===== Subscription ID validation  =====
         echo $subId = 'cfd34ebb-456e-4c5c-a8da-3d09bc871fef' >> %PSFILE%
         echo $raw = Get-Content '%FILE%' -Raw >> %PSFILE%
-        echo if ($raw -notmatch $subId) { >> %PSFILE%
-        echo   Write-Host \" Subscription ID not found or incorrect\" >> %PSFILE%
+        echo $count = ([regex]::Matches($raw, $subId)).Count >> %PSFILE%
+        echo if ($count -lt 2) { >> %PSFILE%
+        echo   Write-Host \" Subscription ID missing or altered. Found count: $count\" >> %PSFILE%
         echo   exit 1 >> %PSFILE%
         echo } >> %PSFILE%
+
 
         echo Write-Host 'RG basic validation PASSED' >> %PSFILE%
 
