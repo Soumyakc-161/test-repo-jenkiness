@@ -37,7 +37,7 @@
             "identity": {
                 "type": "SystemAssigned, UserAssigned",
                 "userAssignedIdentities": {
-                    "/subscriptions/cfd34ebb-456e-4c5c-a8da-3d09bc871fef/resourceGroups/CloudFrame-RG/providers/Microsoft.ManagedIdentity/userAssignedIdentities/databricks-uami-autoloader": {}
+                    "/subscriptions/cfd34ebb-456e-4c5c-a8da-3d09bc871fef/resourceGroups/CloudFrame-RG/providers/Microsoft.ManagedIdentity/userAssignedIdentities/databricks-uami-autoloade": {}
                 }
             },
             "properties": {}
