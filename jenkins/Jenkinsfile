@@ -277,7 +277,7 @@ bat '''
 }
 }
 
-stage('Azure SP Login') {
+stage('Azure SP Log in') {
     steps {
         withCredentials([
             string(credentialsId: 'AZ_CLIENT_ID', variable: 'CID'),
