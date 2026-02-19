@@ -297,20 +297,28 @@ stage('Azure SP Login') {
 stage('ARM What-If') {
     steps {
         script {
-            def output = sh(
+
+            echo "Running ARM What-If..."
+
+            def output = bat(
                 script: """
-                az deployment group what-if \
-                --resource-group ${RG_NAME} \
-                --template-file rg.json
+                az deployment group what-if ^
+                --resource-group CloudFrame-RG ^
+                --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json ^
+                --result-format FullResourcePayloads
                 """,
                 returnStdout: true
-            )
+            ).trim()
 
+            echo "===== WHAT-IF OUTPUT ====="
             echo output
 
+            // Fail pipeline if delete detected
             if (output.contains("- Delete")) {
-                error("Deployment contains DELETE operation. Stopping pipeline.")
+                error("❌ DELETE operation detected. Stopping pipeline.")
             }
+
+            echo "✅ What-If completed successfully"
         }
     }
 }
