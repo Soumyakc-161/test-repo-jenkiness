@@ -310,18 +310,37 @@ stage('ARM What-If') {
                 returnStdout: true
             ).trim()
 
-            echo "===== WHAT-IF OUTPUT ====="
+            echo "========== WHAT-IF OUTPUT =========="
             echo output
+            echo "====================================="
 
-            // Fail pipeline if delete detected
-            if (output.contains("- Delete")) {
-                error("❌ DELETE operation detected. Stopping pipeline.")
+            // Detect FULL resource delete
+            def lines = output.split("\\r?\\n")
+
+            for (line in lines) {
+                if (line.trim().startsWith("- Microsoft.")) {
+                    error("""
+❌ DEPLOYMENT BLOCKED!
+
+Reason:
+Full Azure resource deletion detected.
+
+Resource:
+${line.trim()}
+
+Action:
+Check ARM template. It is removing an existing resource.
+
+Pipeline stopped for safety.
+""")
+                }
             }
 
             echo "✅ What-If completed successfully"
         }
     }
 }
+
 
 
 
