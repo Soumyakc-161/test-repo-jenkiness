@@ -294,15 +294,27 @@ stage('Azure SP Login') {
     }
 }
 
-stage('What-If RG Deployment') {
+stage('ARM What-If') {
     steps {
-        bat '''
-        az deployment group what-if ^
-          --resource-group CloudFrame-RG ^
-          --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json
-        '''
+        script {
+            def output = sh(
+                script: """
+                az deployment group what-if \
+                --resource-group ${RG_NAME} \
+                --template-file rg.json
+                """,
+                returnStdout: true
+            )
+
+            echo output
+
+            if (output.contains("- Delete")) {
+                error("Deployment contains DELETE operation. Stopping pipeline.")
+            }
+        }
     }
 }
+
 
 
         /* ====================================================
