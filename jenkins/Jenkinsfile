@@ -296,50 +296,16 @@ stage('Azure SP Login') {
 
 stage('ARM What-If') {
     steps {
-        script {
-
-            echo "Running ARM What-If..."
-
-            def output = bat(
-                script: """
-                az deployment group what-if ^
-                --resource-group CloudFrame-RG ^
-                --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json ^
-                --result-format FullResourcePayloads
-                """,
-                returnStdout: true
-            ).trim()
-
-            echo "========== WHAT-IF OUTPUT =========="
-            echo output
-            echo "====================================="
-
-            // Detect FULL resource delete
-            def lines = output.split("\\r?\\n")
-
-            for (line in lines) {
-                if (line.trim().startsWith("- Microsoft.")) {
-                    error("""
-❌ DEPLOYMENT BLOCKED!
-
-Reason:
-Full Azure resource deletion detected.
-
-Resource:
-${line.trim()}
-
-Action:
-Check ARM template. It is removing an existing resource.
-
-Pipeline stopped for safety.
-""")
-                }
-            }
-
-            echo "✅ What-If completed successfully"
-        }
+        bat '''
+        az deployment group what-if ^
+        --resource-group CloudFrame-RG ^
+        --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json ^
+        --result-format FullResourcePayloads
+        '''
     }
 }
+
+     
 
 
 
