@@ -364,35 +364,37 @@ stage('ARM What-If') {
                                   fingerprint: true
              }
          }
-    
 
 
-stage('Deploy to DEV') {
-    steps {
-        script {
-            if (params.BRANCH_NAME == 'feature/test_repo') {
+        
+                stage('Deploy to DEV') {
+            steps {
+                script {
+                    if (params.BRANCH_NAME == 'feature/test_repo') {
 
-                echo "Deploying to DEV..."
+                        echo "Deploying to DEV..."
 
-                withCredentials([
-                    string(credentialsId: 'AZ_CLIENT_ID', variable: 'CID'),
-                    string(credentialsId: 'AZ_CLIENT_SECRET', variable: 'CSEC'),
-                    string(credentialsId: 'AZ_TENANT_ID', variable: 'TID'),
-                    string(credentialsId: 'AZ_SUB_ID', variable: 'SID')
-                ]) {
-                    bat '''
-                    az login --service-principal -u %CID% -p %CSEC% --tenant %TID%
-                    az account set --subscription %SID%
+                        withCredentials([
+                            string(credentialsId: 'AZ_CLIENT_ID', variable: 'CID'),
+                            string(credentialsId: 'AZ_CLIENT_SECRET', variable: 'CSEC'),
+                            string(credentialsId: 'AZ_TENANT_ID', variable: 'TID'),
+                            string(credentialsId: 'AZ_SUB_ID', variable: 'SID')
+                        ]) {
+                            bat '''
+                            az login --service-principal -u %CID% -p %CSEC% --tenant %TID%
+                            az account set --subscription %SID%
 
-                    az deployment group create ^
-                    --resource-group CloudFrame-RG ^
-                    --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json
-                    '''
+                            az deployment group create ^
+                            --resource-group CloudFrame-RG ^
+                            --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json
+                            '''
+                        }
+
+                    } else {
+                        echo "Not DEV branch. Skipping deployment."
+                    }
                 }
-
-            } else {
-                echo "Not DEV branch. Skipping deployment."
             }
         }
-    }
-}
+
+
