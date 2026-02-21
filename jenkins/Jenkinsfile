@@ -435,25 +435,26 @@ stage('ARM What-If') {
         }
 
         /* =====================================================
-           12. Deploy Data Factory ARM Template
-        ====================================================== */
-        stage('Deploy Data Factory Template') {
-            steps {
-                bat '''
-                echo Deploying Data Factory ARM template...
+   12. Deploy Data Factory ARM Template
+====================================================== */
+stage('Deploy Data Factory Template') {
+    steps {
+        bat '''
+        echo Deploying Data Factory ARM template...
 
-                az deployment group create ^
-                --name deploy-%BUILD_NUMBER% ^
-                --resource-group CloudFrame-RG ^
-                --template-file azure-adf-e2e\arm-templates\resource-group\rg.json ^
-                --mode Incremental
+        az deployment group create ^
+        --name adf-deploy-%BUILD_NUMBER% ^
+        --resource-group CloudFrame-RG ^
+        --template-file azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json ^
+        --parameters azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json ^
+        --mode Incremental
 
-                if %errorlevel% neq 0 exit /b %errorlevel%
+        if %errorlevel% neq 0 exit /b %errorlevel%
 
-                echo Data Factory Deployment Completed.
-                '''
-            }
-        }
+        echo Data Factory Deployment Completed.
+        '''
+    }
+}
 
         /* =====================================================
            13. Start ADF Triggers
