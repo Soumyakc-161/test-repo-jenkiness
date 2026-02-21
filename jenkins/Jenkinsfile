@@ -362,7 +362,7 @@ stage('ARM What-If') {
              }
          }
 
-         /* =====================================================
+        /* =====================================================
    8. Dev
 ===================================================== */
 
@@ -386,6 +386,7 @@ stage('Deploy to DEV') {
                 string(credentialsId: 'AZ_SUB_ID', variable: 'SID')
             ]) {
                 bat """
+                @echo off
                 az login --service-principal -u %CID% -p %CSEC% --tenant %TID%
                 az account set --subscription %SID%
 
@@ -395,8 +396,7 @@ stage('Deploy to DEV') {
 
                 az deployment group create ^
                 --resource-group CloudFrame-RG ^
-                --template-file azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json ^
-                --parameters azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json ^
+                --template-file azure-adf-e2e\\arm-templates\\data-factory\\factory\\CloudFrameDataFactory_ARMTemplateForFactory.json ^
                 --parameters factoryName=${dfName} ^
                 --mode Incremental ^
                 --verbose
