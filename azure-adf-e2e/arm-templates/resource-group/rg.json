@@ -236,7 +236,7 @@
                 "owner": "cft"
             },
             "sku": {
-                "name": "trial"
+                "name": "premium"
             },
             "properties": {
                 "defaultCatalog": {
