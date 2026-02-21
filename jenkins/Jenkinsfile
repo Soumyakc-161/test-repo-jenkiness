@@ -5,7 +5,7 @@ pipeline {
     string(name: 'BRANCH_NAME', defaultValue: '', description: 'Enter branch name manually')
 
     choice(name: 'ENVIRONMENT',
-           choices: ['dev','test'],
+           choices: ['dev'],
            description: 'Select deployment environment')
 }
 
@@ -298,26 +298,14 @@ stage('Azure SP Login') {
 
 stage('ARM What-If') {
     steps {
-        script {
-
-            def rgName = (params.ENVIRONMENT == "dev") ? "Dev-RG" : "Test-RG"
-
-            echo "Running What-If on ${rgName}"
-
-            bat """
-            az deployment group what-if ^
-            --resource-group ${rgName} ^
-            --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json ^
-            --result-format FullResourcePayloads
-            """
-        }
+        bat '''
+        az deployment group what-if ^
+        --resource-group Dev-RG ^
+        --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json ^
+        --result-format FullResourcePayloads
+        '''
     }
 }
-
-     
-
-
-
 
         /* ====================================================
            5. Data Factory Template Structure Validation
@@ -377,19 +365,12 @@ stage('ARM What-If') {
     }
 }
 
-stage('Deploy ARM - CD') {
+stage('Deploy to Dev') {
     steps {
-        script {
-
-            def rgName = (params.ENVIRONMENT == "dev") ? "Dev-RG" : "Test-RG"
-
-            echo "Deploying to ${rgName}"
-
-            bat """
-            az deployment group create ^
-            --resource-group ${rgName} ^
-            --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json
-            """
-        }
+        bat '''
+        az deployment group create ^
+        --resource-group Dev-RG ^
+        --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json
+        '''
     }
 }
