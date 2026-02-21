@@ -350,8 +350,58 @@ stage('ARM What-If') {
                 '''
             }
         }
+        /* =====================================================
+        //    7. Publish ARM Templates as Artifact
+        // ====================================================== */
+         stage('Publish ARM Artifact') {
+             steps {
+                 echo "Publishing ARM templates as CI artifact"
+
+                 archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
+                                  fingerprint: true
+             }
+         }
+         stage('Deploy to DEV') {
+    when {
+        allOf {
+            expression { params.ENV == 'DEV' }
+            expression { params.BRANCH_NAME == 'feature/test_repo' }
+        }
     }
-}       
+    steps {
+        script {
+            echo "Deploying to DEV environment..."
+
+            withCredentials([
+                string(credentialsId: 'AZ_CLIENT_ID', variable: 'CID'),
+                string(credentialsId: 'AZ_CLIENT_SECRET', variable: 'CSEC'),
+                string(credentialsId: 'AZ_TENANT_ID', variable: 'TID'),
+                string(credentialsId: 'AZ_SUB_ID', variable: 'SID')
+            ]) {
+                bat '''
+                az login --service-principal -u %CID% -p %CSEC% --tenant %TID%
+                az account set --subscription %SID%
+
+                echo Starting ARM deployment...
+
+                az deployment group create ^
+                --resource-group CloudFrame-RG ^
+                --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json ^
+                --mode Incremental
+
+                if %ERRORLEVEL% NEQ 0 (
+                    echo Deployment failed!
+                    exit /b 1
+                )
+
+                echo Deployment completed successfully!
+                '''
+            }
+        }
+    }
+}
+    
+       
 
         
     
