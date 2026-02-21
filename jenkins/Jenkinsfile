@@ -394,7 +394,7 @@ stage('Deploy to DEV') {
 
                 echo Creating Data Factory: ${dfName}
 
-                az deployment group create --resource-group CloudFrame-RG --template-file azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json --parameters factoryName=${dfName} --mode Incremental --verbose
+                az deployment group create --resource-group CloudFrame-RG --template-file azure-adf-e2e\\arm-templates\\data-factory\\factory\\CloudFrameDataFactory_ARMTemplateForFactory.json --parameters factoryName=${dfName} --mode Incremental --verbose
 
                 if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
