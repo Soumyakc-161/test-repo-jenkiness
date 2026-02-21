@@ -361,8 +361,7 @@ stage('ARM What-If') {
                                   fingerprint: true
              }
          }
-
-        /* =====================================================
+/* =====================================================
    8. Dev
 ===================================================== */
 
@@ -379,23 +378,40 @@ stage('Deploy to DEV') {
 
             def dfName = "CloudFrameDataFactory-${env.BUILD_NUMBER}"
 
-bat """
-@echo off
-az login --service-principal -u %CID% -p %CSEC% --tenant %TID%
-az account set --subscription %SID%
+            withCredentials([
+                string(credentialsId: 'AZ_CLIENT_ID', variable: 'CID'),
+                string(credentialsId: 'AZ_CLIENT_SECRET', variable: 'CSEC'),
+                string(credentialsId: 'AZ_TENANT_ID', variable: 'TID'),
+                string(credentialsId: 'AZ_SUB_ID', variable: 'SID')
+            ]) {
+                bat """
+                @echo off
+                az login --service-principal -u %CID% -p %CSEC% --tenant %TID%
+                if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
-echo Creating Data Factory: ${dfName}
+                az account set --subscription %SID%
+                if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
-az deployment group create ^
---resource-group CloudFrame-RG ^
---template-file azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json ^
---parameters azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json ^
---parameters factoryName=${dfName} ^
---mode Incremental ^
---verbose
+                echo =========================================
+                echo Creating / Updating Data Factory: ${dfName}
+                echo =========================================
 
-if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
-"""
+                az deployment group create ^
+                --resource-group CloudFrame-RG ^
+                --template-file azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json ^
+                --parameters azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json ^
+                --parameters factoryName=${dfName} ^
+                --parameters tagsBuildNumber=${env.BUILD_NUMBER} ^
+                --mode Incremental ^
+                --verbose
+
+                if %ERRORLEVEL% NEQ 0 (
+                    echo Deployment FAILED!
+                    exit /b %ERRORLEVEL%
+                )
+
+                echo Deployment completed successfully!
+                """
            
             }
           }
