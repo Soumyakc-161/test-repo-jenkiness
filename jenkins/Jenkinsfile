@@ -363,9 +363,10 @@ stage('ARM What-If') {
          }
 
          /* =====================================================
-        //    8. Dev
-        // ====================================================== */
-        stage('Deploy to DEV') {
+   8. Dev
+===================================================== */
+
+stage('Deploy to DEV') {
     when {
         allOf {
             expression { params.ENV == 'DEV' }
@@ -394,8 +395,9 @@ stage('ARM What-If') {
 
                 az deployment group create ^
                 --resource-group CloudFrame-RG ^
-                --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json ^
-                --parameters factories_CloudFrameDataFactory_name=${dfName} ^
+                --template-file azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json ^
+                --parameters azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json ^
+                --parameters factoryName=${dfName} ^
                 --mode Incremental ^
                 --verbose
 
@@ -406,6 +408,7 @@ stage('ARM What-If') {
 
                 echo Deployment completed successfully!
                 """
+           
             }
           }
         }
