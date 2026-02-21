@@ -386,18 +386,23 @@ stage('Deploy to DEV') {
             ]) {
                 bat '''
                 @echo off
+
+                echo ===== LOGIN =====
                 az login --service-principal -u %CID% -p %CSEC% --tenant %TID%
+
+                echo ===== SET SUBSCRIPTION =====
                 az account set --subscription %SID%
 
-                echo =========================================
-                echo RUNNING DEPLOYMENT NOW
-                echo =========================================
+                echo ===== RUNNING DEPLOYMENT NOW =====
 
-                az deployment group create --resource-group CloudFrame-RG --template-file azure-adf-e2e\\arm-templates\\data-factory\\factory\\CloudFrameDataFactory_ARMTemplateForFactory.json --parameters factoryName=CloudFrameDataFactoryTest999 --mode Incremental --verbose
+                az deployment group create ^
+                --resource-group CloudFrame-RG ^
+                --template-file azure-adf-e2e\arm-templates\data-factory\factory\CloudFrameDataFactory_ARMTemplateForFactory.json ^
+                --parameters factoryName=CloudFrameDataFactoryRealTest123 ^
+                --mode Incremental ^
+                --verbose
 
-                echo =========================================
-                echo DEPLOYMENT FINISHED
-                echo =========================================
+                echo ===== DEPLOYMENT FINISHED =====
                 '''
            
             }
