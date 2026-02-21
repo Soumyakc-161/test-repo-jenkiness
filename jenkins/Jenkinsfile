@@ -384,22 +384,21 @@ stage('Deploy to DEV') {
                 string(credentialsId: 'AZ_TENANT_ID', variable: 'TID'),
                 string(credentialsId: 'AZ_SUB_ID', variable: 'SID')
             ]) {
-                bat """
+                bat '''
                 @echo off
                 az login --service-principal -u %CID% -p %CSEC% --tenant %TID%
-                if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
-
                 az account set --subscription %SID%
-                if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
-                echo Creating Data Factory: ${dfName}
+                echo =========================================
+                echo RUNNING DEPLOYMENT NOW
+                echo =========================================
 
-                az deployment group create --resource-group CloudFrame-RG --template-file azure-adf-e2e\\arm-templates\\data-factory\\factory\\CloudFrameDataFactory_ARMTemplateForFactory.json --parameters factoryName=${dfName} --mode Incremental --verbose
+                az deployment group create --resource-group CloudFrame-RG --template-file azure-adf-e2e\\arm-templates\\data-factory\\factory\\CloudFrameDataFactory_ARMTemplateForFactory.json --parameters factoryName=CloudFrameDataFactoryTest999 --mode Incremental --verbose
 
-                if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
-
-                echo Deployment completed successfully!
-                """
+                echo =========================================
+                echo DEPLOYMENT FINISHED
+                echo =========================================
+                '''
            
             }
           }
