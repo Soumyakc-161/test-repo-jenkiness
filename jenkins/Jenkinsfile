@@ -443,9 +443,9 @@ stage('ARM What-If') {
                 echo Deploying Data Factory ARM template...
 
                 az deployment group create ^
+                --name deploy-%BUILD_NUMBER% ^
                 --resource-group CloudFrame-RG ^
-                --template-file azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json ^
-                --parameters azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json ^
+                --template-file azure-adf-e2e\arm-templates\resource-group\rg.json ^
                 --mode Incremental
 
                 if %errorlevel% neq 0 exit /b %errorlevel%
