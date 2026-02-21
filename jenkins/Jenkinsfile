@@ -460,23 +460,24 @@ stage('Deploy Data Factory Template') {
            13. Start ADF Triggers
         ====================================================== */
         stage('Start ADF Triggers') {
-            steps {
-                bat '''
-                echo Starting ADF triggers...
+    steps {
+        bat '''
+        echo Starting ADF triggers...
 
-                for /f %%i in ('az datafactory trigger list ^
-                    --resource-group CloudFrame-RG ^
-                    --factory-name cft-adf-dev ^
-                    --query "[].name" -o tsv') do (
+        for /F %%i in ('az datafactory trigger list ^
+            --resource-group CloudFrame-RG ^
+            --factory-name CloudFrameDataFactory ^
+            --query "[].name" -o tsv') do (
+                az datafactory trigger start ^
+                --resource-group CloudFrame-RG ^
+                --factory-name CloudFrameDataFactory ^
+                --name %%i
+        )
 
-                    az datafactory trigger start ^
-                        --resource-group CloudFrame-RG ^
-                        --factory-name cft-adf-dev ^
-                        --name %%i
-                )
+        if %errorlevel% neq 0 exit /b %errorlevel%
 
-                echo All triggers started successfully.
-                '''
+        echo All triggers started successfully.
+        '''
             }
         }
     }    
