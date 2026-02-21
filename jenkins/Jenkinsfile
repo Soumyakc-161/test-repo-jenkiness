@@ -382,26 +382,15 @@ stage('Deploy to DEV') {
                 string(credentialsId: 'AZ_TENANT_ID', variable: 'TID'),
                 string(credentialsId: 'AZ_SUB_ID', variable: 'SID')
             ]) {
-                bat '''
+
+                bat """
                 @echo off
-                setlocal enabledelayedexpansion
 
                 echo ===== LOGIN =====
                 az login --service-principal -u %CID% -p %CSEC% --tenant %TID%
-                if errorlevel 1 (
-                  echo LOGIN FAILED
-                  exit /b 1
-                )
 
                 echo ===== SET SUBSCRIPTION =====
                 az account set --subscription %SID%
-                if errorlevel 1 (
-                  echo SUBSCRIPTION SET FAILED
-                  exit /b 1
-                )
-
-                echo ===== VERIFY ACCOUNT =====
-                az account show
 
                 echo ===== RUNNING ROOT ADF DEPLOYMENT =====
 
@@ -413,14 +402,8 @@ stage('Deploy to DEV') {
                 --mode Incremental ^
                 --verbose
 
-                if errorlevel 1 (
-                  echo DEPLOYMENT FAILED
-                  exit /b 1
-                )
-
-                echo ===== DEPLOYMENT FINISHED SUCCESSFULLY =====
-                endlocal
-                '''
+                echo ===== DEPLOYMENT FINISHED =====
+                """
            
             }
           }
