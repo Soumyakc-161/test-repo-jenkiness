@@ -375,7 +375,7 @@ stage('ARM What-If') {
     }
     steps {
         script {
-            echo "Deploying to TEST Resource Group to prove CD..."
+            echo "Deploying to CloudFrame-RG-TEST to prove CD..."
 
             withCredentials([
                 string(credentialsId: 'AZ_CLIENT_ID', variable: 'CID'),
@@ -385,16 +385,21 @@ stage('ARM What-If') {
             ]) {
                 bat '''
                 @echo off
-                echo Logging into Azure...
+
+                echo ===== Logging into Azure =====
                 az login --service-principal -u %CID% -p %CSEC% --tenant %TID%
                 if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
-                echo Setting subscription...
+                echo ===== Setting Subscription =====
                 az account set --subscription %SID%
                 if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
+                echo ===== Current Subscription =====
+                az account show
+
                 echo =========================================
-                echo Starting ARM deployment to CloudFrame-RG-TEST
+                echo Starting ARM Deployment
+                echo Resource Group: CloudFrame-RG-TEST
                 echo =========================================
 
                 az deployment group create ^
@@ -409,10 +414,13 @@ stage('ARM What-If') {
                 )
 
                 echo =========================================
-                echo Deployment completed successfully!
+                echo Deployment COMPLETED SUCCESSFULLY!
                 echo =========================================
                 '''
             }
         }
     }
 }
+
+         
+         
