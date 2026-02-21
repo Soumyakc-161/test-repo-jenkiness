@@ -376,8 +376,6 @@ stage('Deploy to DEV') {
         script {
             echo "Deploying NEW Data Factory to prove CD..."
 
-            def dfName = "CloudFrameDataFactory-${env.BUILD_NUMBER}"
-
             withCredentials([
                 string(credentialsId: 'AZ_CLIENT_ID', variable: 'CID'),
                 string(credentialsId: 'AZ_CLIENT_SECRET', variable: 'CSEC'),
@@ -389,20 +387,28 @@ stage('Deploy to DEV') {
 
                 echo ===== LOGIN =====
                 az login --service-principal -u %CID% -p %CSEC% --tenant %TID%
+                if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
                 echo ===== SET SUBSCRIPTION =====
                 az account set --subscription %SID%
+                if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
-                echo ===== RUNNING DEPLOYMENT NOW =====
+                echo ===== RUNNING ROOT ADF DEPLOYMENT =====
 
                 az deployment group create ^
                 --resource-group CloudFrame-RG ^
-                --template-file azure-adf-e2e\arm-templates\data-factory\factory\CloudFrameDataFactory_ARMTemplateForFactory.json ^
-                --parameters factoryName=CloudFrameDataFactoryRealTest123 ^
+                --template-file azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json ^
+                --parameters azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json ^
+                --parameters factoryName=CloudFrameDataFactoryTest999 ^
                 --mode Incremental ^
                 --verbose
 
-                echo ===== DEPLOYMENT FINISHED =====
+                if %ERRORLEVEL% NEQ 0 (
+                    echo DEPLOYMENT FAILED
+                    exit /b %ERRORLEVEL%
+                )
+
+                echo ===== DEPLOYMENT FINISHED SUCCESSFULLY =====
                 '''
            
             }
