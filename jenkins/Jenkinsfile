@@ -2,10 +2,12 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'BRANCH_NAME', defaultValue: '', description: 'Enter branch name manually')
+    string(name: 'BRANCH_NAME', defaultValue: '', description: 'Enter branch name manually')
 
-        
-    }
+    choice(name: 'ENVIRONMENT',
+           choices: ['dev','test'],
+           description: 'Select deployment environment')
+}
 
     stages {
 
@@ -296,12 +298,19 @@ stage('Azure SP Login') {
 
 stage('ARM What-If') {
     steps {
-        bat '''
-        az deployment group what-if ^
-        --resource-group CloudFrame-RG ^
-        --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json ^
-        --result-format FullResourcePayloads
-        '''
+        script {
+
+            def rgName = (params.ENVIRONMENT == "dev") ? "Dev-RG" : "Test-RG"
+
+            echo "Running What-If on ${rgName}"
+
+            bat """
+            az deployment group what-if ^
+            --resource-group ${rgName} ^
+            --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json ^
+            --result-format FullResourcePayloads
+            """
+        }
     }
 }
 
@@ -365,5 +374,22 @@ stage('ARM What-If') {
                                   fingerprint: true
              }
          }
+    }
+}
+
+stage('Deploy ARM - CD') {
+    steps {
+        script {
+
+            def rgName = (params.ENVIRONMENT == "dev") ? "Dev-RG" : "Test-RG"
+
+            echo "Deploying to ${rgName}"
+
+            bat """
+            az deployment group create ^
+            --resource-group ${rgName} ^
+            --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json
+            """
+        }
     }
 }
