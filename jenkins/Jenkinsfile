@@ -392,23 +392,11 @@ stage('Deploy to DEV') {
                 az account set --subscription %SID%
                 if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
-                echo =========================================
-                echo Creating / Updating Data Factory: ${dfName}
-                echo =========================================
+                echo Creating Data Factory: ${dfName}
 
-                az deployment group create ^
-                --resource-group CloudFrame-RG ^
-                --template-file azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json ^
-                --parameters azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json ^
-                --parameters factoryName=${dfName} ^
-                --parameters tagsBuildNumber=${env.BUILD_NUMBER} ^
-                --mode Incremental ^
-                --verbose
+                az deployment group create --resource-group CloudFrame-RG --template-file azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json --parameters factoryName=${dfName} --mode Incremental --verbose
 
-                if %ERRORLEVEL% NEQ 0 (
-                    echo Deployment FAILED!
-                    exit /b %ERRORLEVEL%
-                )
+                if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
                 echo Deployment completed successfully!
                 """
