@@ -384,14 +384,24 @@ stage('Deploy to DEV') {
             ]) {
                 bat '''
                 @echo off
+                setlocal enabledelayedexpansion
 
                 echo ===== LOGIN =====
                 az login --service-principal -u %CID% -p %CSEC% --tenant %TID%
-                if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+                if errorlevel 1 (
+                  echo LOGIN FAILED
+                  exit /b 1
+                )
 
                 echo ===== SET SUBSCRIPTION =====
                 az account set --subscription %SID%
-                if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+                if errorlevel 1 (
+                  echo SUBSCRIPTION SET FAILED
+                  exit /b 1
+                )
+
+                echo ===== VERIFY ACCOUNT =====
+                az account show
 
                 echo ===== RUNNING ROOT ADF DEPLOYMENT =====
 
@@ -399,16 +409,17 @@ stage('Deploy to DEV') {
                 --resource-group CloudFrame-RG ^
                 --template-file azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json ^
                 --parameters azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json ^
-                --parameters factoryName=CloudFrameDataFactoryTest999 ^
+                --parameters factoryName=CloudFrameDataFactoryFinal999 ^
                 --mode Incremental ^
                 --verbose
 
-                if %ERRORLEVEL% NEQ 0 (
-                    echo DEPLOYMENT FAILED
-                    exit /b %ERRORLEVEL%
+                if errorlevel 1 (
+                  echo DEPLOYMENT FAILED
+                  exit /b 1
                 )
 
                 echo ===== DEPLOYMENT FINISHED SUCCESSFULLY =====
+                endlocal
                 '''
            
             }
