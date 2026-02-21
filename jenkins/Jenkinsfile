@@ -365,8 +365,7 @@ stage('ARM What-If') {
          /* =====================================================
         //    8. Dev
         // ====================================================== */
-
-    stage('Deploy to DEV') {
+        stage('Deploy to DEV') {
     when {
         allOf {
             expression { params.ENV == 'DEV' }
@@ -375,7 +374,9 @@ stage('ARM What-If') {
     }
     steps {
         script {
-            echo "Deploying to CloudFrame-RG-TEST to prove CD..."
+            echo "Deploying NEW Data Factory to prove CD..."
+
+            def dfName = "CloudFrameDataFactory-${env.BUILD_NUMBER}"
 
             withCredentials([
                 string(credentialsId: 'AZ_CLIENT_ID', variable: 'CID'),
@@ -383,28 +384,18 @@ stage('ARM What-If') {
                 string(credentialsId: 'AZ_TENANT_ID', variable: 'TID'),
                 string(credentialsId: 'AZ_SUB_ID', variable: 'SID')
             ]) {
-                bat '''
-                @echo off
-
-                echo ===== Logging into Azure =====
+                bat """
                 az login --service-principal -u %CID% -p %CSEC% --tenant %TID%
-                if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
-
-                echo ===== Setting Subscription =====
                 az account set --subscription %SID%
-                if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
-
-                echo ===== Current Subscription =====
-                az account show
 
                 echo =========================================
-                echo Starting ARM Deployment
-                echo Resource Group: CloudFrame-RG-TEST
+                echo Creating Data Factory: ${dfName}
                 echo =========================================
 
                 az deployment group create ^
-                --resource-group CloudFrame-RG-TEST ^
+                --resource-group CloudFrame-RG ^
                 --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json ^
+                --parameters factories_CloudFrameDataFactory_name=${dfName} ^
                 --mode Incremental ^
                 --verbose
 
@@ -413,14 +404,15 @@ stage('ARM What-If') {
                     exit /b %ERRORLEVEL%
                 )
 
-                echo =========================================
-                echo Deployment COMPLETED SUCCESSFULLY!
-                echo =========================================
-                '''
+                echo Deployment completed successfully!
+                """
             }
+          }
         }
-    }
+      }
+    }   
 }
+                        
 
          
          
