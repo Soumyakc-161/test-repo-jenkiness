@@ -1,13 +1,13 @@
+My final CI part code
+
 pipeline {
     agent any
 
     parameters {
-    string(name: 'BRANCH_NAME', defaultValue: '', description: 'Enter branch name manually')
+        string(name: 'BRANCH_NAME', defaultValue: '', description: 'Enter branch name manually')
 
-    choice(name: 'ENVIRONMENT',
-           choices: ['dev'],
-           description: 'Select deployment environment')
-}
+        
+    }
 
     stages {
 
@@ -300,12 +300,17 @@ stage('ARM What-If') {
     steps {
         bat '''
         az deployment group what-if ^
-        --resource-group Dev-RG ^
+        --resource-group CloudFrame-RG ^
         --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json ^
         --result-format FullResourcePayloads
         '''
     }
 }
+
+     
+
+
+
 
         /* ====================================================
            5. Data Factory Template Structure Validation
@@ -362,15 +367,5 @@ stage('ARM What-If') {
                                   fingerprint: true
              }
          }
-    }
-}
-
-stage('Deploy to Dev') {
-    steps {
-        bat '''
-        az deployment group create ^
-        --resource-group Dev-RG ^
-        --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json
-        '''
     }
 }
