@@ -365,16 +365,17 @@ stage('ARM What-If') {
          /* =====================================================
         //    8. Dev
         // ====================================================== */
-        stage('Deploy to DEV') {
+
+    stage('Deploy to DEV') {
     when {
         allOf {
             expression { params.ENV == 'DEV' }
-            expression { params.BRANCH_NAME.trim() == 'feature/test_repo' }
+            expression { params.BRANCH_NAME == 'feature/test_repo' }
         }
     }
     steps {
         script {
-            echo "Deploying to DEV environment..."
+            echo "Deploying to TEST Resource Group to prove CD..."
 
             withCredentials([
                 string(credentialsId: 'AZ_CLIENT_ID', variable: 'CID'),
@@ -382,7 +383,6 @@ stage('ARM What-If') {
                 string(credentialsId: 'AZ_TENANT_ID', variable: 'TID'),
                 string(credentialsId: 'AZ_SUB_ID', variable: 'SID')
             ]) {
-
                 bat '''
                 @echo off
                 echo Logging into Azure...
@@ -393,15 +393,12 @@ stage('ARM What-If') {
                 az account set --subscription %SID%
                 if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
-                echo Current subscription:
-                az account show
-
                 echo =========================================
-                echo Starting ARM deployment...
+                echo Starting ARM deployment to CloudFrame-RG-TEST
                 echo =========================================
 
                 az deployment group create ^
-                --resource-group CloudFrame-RG ^
+                --resource-group CloudFrame-RG-TEST ^
                 --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json ^
                 --mode Incremental ^
                 --verbose
@@ -419,7 +416,3 @@ stage('ARM What-If') {
         }
     }
 }
-    
-            
-    
-         
