@@ -2,10 +2,9 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'BRANCH_NAME', defaultValue: '', description: 'Enter branch name manually')
-
-        
-    }
+    string(name: 'BRANCH_NAME', defaultValue: '', description: 'Enter branch name manually')
+    choice(name: 'ENV', choices: ['DEV'], description: 'Select deployment environment')
+}
 
     stages {
 
@@ -365,5 +364,22 @@ stage('ARM What-If') {
                                   fingerprint: true
              }
          }
+    }
+}
+
+stage('Deploy to DEV') {
+    when {
+        expression { params.ENV == 'DEV' }
+    }
+    steps {
+        echo "Deploying to DEV environment..."
+
+        bat '''
+        az deployment group create ^
+        --resource-group CloudFrame-RG ^
+        --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json
+        '''
+
+        echo "DEV Deployment Completed"
     }
 }
