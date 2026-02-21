@@ -364,8 +364,8 @@ stage('ARM What-If') {
                                   fingerprint: true
              }
          }
-    }
-}
+    
+
 
 stage('Deploy to DEV') {
     steps {
