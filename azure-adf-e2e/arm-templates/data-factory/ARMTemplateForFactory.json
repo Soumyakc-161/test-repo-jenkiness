@@ -98,10 +98,7 @@
                     "referenceName": "AutoResolveIntegrationRuntime",
                     "type": "IntegrationRuntimeReference"
                 }
-            },
-            "dependsOn": [
-                "[concat(variables('factoryId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
-            ]
+            }
         },
         {
             "name": "[concat(parameters('factoryName'), '/new_cft_SqlServer1')]",
@@ -126,10 +123,7 @@
                     "referenceName": "AutoResolveIntegrationRuntime",
                     "type": "IntegrationRuntimeReference"
                 }
-            },
-            "dependsOn": [
-                "[concat(variables('factoryId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
-            ]
+            }
         },
         {
             "name": "[concat(parameters('factoryName'), '/SqlServerTable1')]",
