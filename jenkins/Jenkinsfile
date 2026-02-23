@@ -380,12 +380,12 @@ stage('ARM What-If') {
 
                 for /F %%i in ('az datafactory trigger list ^
             --resource-group CloudFrame-RG ^
-            --factory-name CloudFrameDataFactoryNEW ^
+            --factory-name CloudFrameDataFactory ^
             --query "[].name" -o tsv') do (
 
             az datafactory trigger stop ^
                 --resource-group CloudFrame-RG ^
-                --factory-name CloudFrameDataFactoryNEW ^
+                --factory-name CloudFrameDataFactory ^
                 --name %%i
             )
 
@@ -470,11 +470,11 @@ stage('Deploy Data Factory Template') {
 
         for /F %%i in ('az datafactory trigger list ^
             --resource-group CloudFrame-RG ^
-            --factory-name CloudFrameDataFactoryNEW ^
+            --factory-name CloudFrameDataFactory ^
             --query "[].name" -o tsv') do (
                 az datafactory trigger start ^
                 --resource-group CloudFrame-RG ^
-                --factory-name CloudFrameDataFactoryNEW ^
+                --factory-name CloudFrameDataFactory ^
                 --name %%i
         )
 
