@@ -6,13 +6,13 @@
             "value": "CloudFrameDataFactory2"
         },
         "CFT_Sink_AzureBlobStorage_connectionString": {
-            "value": ""
+            "value": "DefaultEndpointsProtocol=https;AccountName=test;AccountKey=test;EndpointSuffix=core.windows.net"
         },
         "CFT_Sql_Server1_password": {
-            "value": ""
+            "value": "Test@123"
         },
         "new_cft_SqlServer1_password": {
-            "value": ""
+            "value": "Test@123"
         },
         "CFT_Sql_Server1_properties_typeProperties_server": {
             "value": "LAPTOP-9GFNROJ6\\SQLEXPRESS"
