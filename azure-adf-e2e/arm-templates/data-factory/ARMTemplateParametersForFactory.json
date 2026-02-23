@@ -3,7 +3,7 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "factoryName": {
-            "value": "CloudFrameDataFactory2"
+            "value": "CloudFrameDataFactory001"
         },
         "CFT_Sink_AzureBlobStorage_connectionString": {
             "value": "DefaultEndpointsProtocol=https;AccountName=test;AccountKey=test;EndpointSuffix=core.windows.net"
