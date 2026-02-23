@@ -370,120 +370,30 @@ stage('ARM What-If') {
             }
         }
 
-        /* =====================================================
-           9. Stop ADF Triggers
-        ====================================================== */
-        stage('Stop ADF Triggers') {
-            steps {
-                bat '''
-                echo Stopping ADF triggers...
-
-                for /F %%i in ('az datafactory trigger list ^
-            --resource-group CloudFrame-RG ^
-            --factory-name CloudFrameDataFactory ^
-            --query "[].name" -o tsv') do (
-
-            az datafactory trigger stop ^
-                --resource-group CloudFrame-RG ^
-                --factory-name CloudFrameDataFactory ^
-                --name %%i
-            )
-
-                if %errorlevel% neq 0 exit /b %errorlevel%
-
-                echo All triggers stopped successfully.
-                '''
-            }
-        }
+        
+        
 
         /* =====================================================
-           10. Deploy Resource Group ARM Template
-        ====================================================== */
-        stage('Deploy RG Template') {
-            steps {
-                bat '''
-                echo Deploying Resource Group ARM template...
-
-                az deployment group create ^
-                --resource-group CloudFrame-RG ^
-                --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json ^
-                --mode Incremental
-
-                if %errorlevel% neq 0 exit /b %errorlevel%
-
-                echo RG Deployment Completed.
-                '''
-            }
-        }
-
-        /* =====================================================
-           11. Deploy Storage Account Template
-        ====================================================== */
-        stage('Deploy Storage Template') {
-            steps {
-                bat '''
-                echo Deploying Storage Account ARM template...
-
-                az deployment group create ^
-                --resource-group CloudFrame-RG ^
-                --template-file azure-adf-e2e\\arm-templates\\storage-account\\storage.json ^
-                --mode Incremental
-
-                if %errorlevel% neq 0 exit /b %errorlevel%
-
-                echo Storage Deployment Completed.
-                '''
-            }
-        }
-
-
-
-        /* =====================================================
-   12. Deploy Data Factory ARM Template
+   9. Deploy Data Factory ARM Template
 ====================================================== */
-stage('Deploy Data Factory Template') {
-    steps {
-        bat '''
-        echo Deploying Data Factory ARM template...
+        stage('Deploy Data Factory Template') {
+            steps {
+                bat '''
+                echo Deploying Data Factory ARM template...
 
-        az deployment group create ^
-        --name adf-deploy-%BUILD_NUMBER% ^
-        --resource-group CloudFrame-RG ^
-        --template-file azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json ^
-        --parameters azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json ^
-        --mode Incremental
-
-        if %errorlevel% neq 0 exit /b %errorlevel%
-
-        echo Data Factory Deployment Completed.
-        '''
-    }
-}
-
-        /* =====================================================
-           13. Start ADF Triggers
-        ====================================================== */
-        stage('Start ADF Triggers') {
-    steps {
-        bat '''
-        echo Starting ADF triggers...
-
-        for /F %%i in ('az datafactory trigger list ^
-            --resource-group CloudFrame-RG ^
-            --factory-name CloudFrameDataFactory ^
-            --query "[].name" -o tsv') do (
-                az datafactory trigger start ^
+                az deployment group create ^
+                --name adf-deploy-%BUILD_NUMBER% ^
                 --resource-group CloudFrame-RG ^
-                --factory-name CloudFrameDataFactory ^
-                --name %%i
-        )
+                --template-file azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json ^
+                --parameters azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json ^
+                --mode Incremental
 
-        if %errorlevel% neq 0 exit /b %errorlevel%
+                if %errorlevel% neq 0 exit /b %errorlevel%
 
-        echo All triggers started successfully.
-        '''
+                echo Data Factory Deployment Completed.
+                '''
             }
-        }
+        }    
     }    
 }                        
 
