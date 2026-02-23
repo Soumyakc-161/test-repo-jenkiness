@@ -378,16 +378,18 @@ stage('ARM What-If') {
                 bat '''
                 echo Stopping ADF triggers...
 
-                for /f %%i in ('az datafactory trigger list ^
-                    --resource-group CloudFrame-RG ^
-                    --factory-name cft-adf-dev ^
-                    --query "[].name" -o tsv') do (
+                for /F %%i in ('az datafactory trigger list ^
+            --resource-group CloudFrame-RG ^
+            --factory-name CloudFrameDataFactory ^
+            --query "[].name" -o tsv') do (
 
-                    az datafactory trigger stop ^
-                        --resource-group CloudFrame-RG ^
-                        --factory-name cft-adf-dev ^
-                        --name %%i
-                )
+            az datafactory trigger stop ^
+                --resource-group CloudFrame-RG ^
+                --factory-name CloudFrameDataFactory ^
+                --name %%i
+            )
+
+                if %errorlevel% neq 0 exit /b %errorlevel%
 
                 echo All triggers stopped successfully.
                 '''
