@@ -74,7 +74,7 @@
             ]
         },
         {
-            "name": "[concat(parameters('factoryName'), '/AutoResolveIntegrationRuntimeA')]",
+            "name": "[concat(parameters('factoryName'), '/CFT-Self-Hosted-IR')]",
             "type": "Microsoft.DataFactory/factories/integrationRuntimes",
             "apiVersion": "2018-06-01",
             "properties": {
@@ -84,7 +84,7 @@
             "dependsOn": []
         },
         {
-            "name": "[concat(parameters('factoryName'), '/AutoResolveIntegrationRuntime')]",
+            "name": "[concat(parameters('factoryName'), '/new-cft-integrationRuntime1')]",
             "type": "Microsoft.DataFactory/factories/integrationRuntimes",
             "apiVersion": "2018-06-01",
             "properties": {
@@ -149,12 +149,12 @@
                     }
                 },
                 "connectVia": {
-                    "referenceName": "AutoResolveIntegrationRuntime",
+                    "referenceName": "CFT-Self-Hosted-IR",
                     "type": "IntegrationRuntimeReference"
                 }
             },
             "dependsOn": [
-                "[concat(variables('factoryId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+                "[concat(variables('factoryId'), '/integrationRuntimes/CFT-Self-Hosted-IR')]"
             ]
         },
         {
@@ -177,12 +177,12 @@
                     }
                 },
                 "connectVia": {
-                    "referenceName": "AutoResolveIntegrationRuntime",
+                    "referenceName": "new-cft-integrationRuntime1",
                     "type": "IntegrationRuntimeReference"
                 }
             },
             "dependsOn": [
-                "[concat(variables('factoryId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+                "[concat(variables('factoryId'), '/integrationRuntimes/new-cft-integrationRuntime1')]"
             ]
         },
         {

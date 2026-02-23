@@ -28,7 +28,9 @@
             "dependsOn": [],
             "location": "[parameters('dataFactory_location')]",
             "identity": {
-                "type": "[parameters('dataFactory_identity_type')]"   
+                "type": "[parameters('dataFactory_identity_type')]",
+                "principalId": "50ea8bcf-0953-435a-a57e-47c414a2d0ec",
+                "tenantId": "fd9228f9-2dbd-491f-a79d-150eddde90fa"
             }
         }
     ]

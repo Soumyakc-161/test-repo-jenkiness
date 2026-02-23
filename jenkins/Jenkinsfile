@@ -370,31 +370,31 @@ stage('ARM What-If') {
             }
         }
 
-        // /* =====================================================
-        //    9. Stop ADF Triggers
-        // ====================================================== */
-        // stage('Stop ADF Triggers') {
-        //     steps {
-        //         bat '''
-        //         echo Stopping ADF triggers...
+        /* =====================================================
+           9. Stop ADF Triggers
+        ====================================================== */
+        stage('Stop ADF Triggers') {
+            steps {
+                bat '''
+                echo Stopping ADF triggers...
 
-        //         for /F %%i in ('az datafactory trigger list ^
-        //     --resource-group CloudFrame-RG ^
-        //     --factory-name CloudFrameDataFactoryNEW ^
-        //     --query "[].name" -o tsv') do (
+                for /F %%i in ('az datafactory trigger list ^
+            --resource-group CloudFrame-RG ^
+            --factory-name CloudFrameDataFactoryNEW ^
+            --query "[].name" -o tsv') do (
 
-        //     az datafactory trigger stop ^
-        //         --resource-group CloudFrame-RG ^
-        //         --factory-name CloudFrameDataFactoryNEW ^
-        //         --name %%i
-        //     )
+            az datafactory trigger stop ^
+                --resource-group CloudFrame-RG ^
+                --factory-name CloudFrameDataFactoryNEW ^
+                --name %%i
+            )
 
-        //         if %errorlevel% neq 0 exit /b %errorlevel%
+                if %errorlevel% neq 0 exit /b %errorlevel%
 
-        //         echo All triggers stopped successfully.
-        //         '''
-        //     }
-        // }
+                echo All triggers stopped successfully.
+                '''
+            }
+        }
 
         /* =====================================================
            10. Deploy Resource Group ARM Template
@@ -437,28 +437,6 @@ stage('ARM What-If') {
         }
 
 
-/* =====================================================
-         creating new data factory
-        ====================================================== */
-
-        stage('Create New Data Factory') {
-    steps {
-        bat '''
-        echo Creating new Data Factory...
-
-        az deployment group create ^
-        --name adf-base-%BUILD_NUMBER% ^
-        --resource-group CloudFrame-RG ^
-        --template-file azure-adf-e2e\\arm-templates\\data-factory\\factory\\CloudFrameDataFactory_ARMTemplateForFactory.json ^
-        --parameters azure-adf-e2e\\arm-templates\\data-factory\\factory\\CloudFrameDataFactory_ARMTemplateParametersForFactory.json ^
-        --mode Incremental
-
-        if %errorlevel% neq 0 exit /b %errorlevel%
-
-        echo Base Data Factory Created Successfully.
-        '''
-    }
-}
 
         /* =====================================================
    12. Deploy Data Factory ARM Template

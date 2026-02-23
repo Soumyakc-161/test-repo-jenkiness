@@ -3,7 +3,7 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "factoryName": {
-            "value": "CloudFrameDataFactoryNEW"
+            "value": "CloudFrameDataFactory"
         },
         "CFT_Sink_AzureBlobStorage_connectionString": {
             "value": ""
