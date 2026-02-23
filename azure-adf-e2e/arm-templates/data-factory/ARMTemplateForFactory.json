@@ -49,6 +49,17 @@
     },
     "resources": [
         {
+            "name": "[parameters('factoryName')]",
+            "type": "Microsoft.DataFactory/factories",
+            "apiVersion": "2018-06-01",
+            "location": "centralindia",
+            "identity": {
+            "type": "SystemAssigned"
+        },
+        "properties": {}
+        },
+        
+        {
             "name": "[concat(parameters('factoryName'), '/AutoResolveIntegrationRuntime')]",
             "type": "Microsoft.DataFactory/factories/integrationRuntimes",
             "apiVersion": "2018-06-01",
