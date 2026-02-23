@@ -73,10 +73,7 @@
                     "referenceName": "AutoResolveIntegrationRuntime",
                     "type": "IntegrationRuntimeReference"
                 }
-            },
-            "dependsOn": [
-                "[concat(variables('factoryId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
-            ]
+            }
         },
         {
             "name": "[concat(parameters('factoryName'), '/CFT_Sql_Server1')]",
