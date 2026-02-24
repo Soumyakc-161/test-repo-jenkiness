@@ -391,7 +391,7 @@ stage('ARM What-If') {
                 --name deployment-%BUILD_NUMBER% ^
                 --resource-group CloudFrame-RG ^
                 --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
-                --parameters dataFactoryName=adf-dev ^
+                --parameters dataFactoryName=cloudframe-dev-adf ^
                 --mode Incremental
 
                 IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
@@ -417,7 +417,7 @@ stage('ARM What-If') {
                 --name deployment-%BUILD_NUMBER% ^
                 --resource-group CloudFrame-RG ^
                 --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
-                --parameters dataFactoryName=adf-test ^
+                --parameters dataFactoryName=cloudframe-test-adf ^
                 --mode Incremental
 
                 IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
@@ -443,7 +443,7 @@ stage('ARM What-If') {
                 --name deployment-%BUILD_NUMBER% ^
                 --resource-group CloudFrame-RG ^
                 --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
-                --parameters dataFactoryName=adf-prod ^
+                --parameters dataFactoryName=cloudframe-prod-adf ^
                 --mode Incremental
 
                 IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
