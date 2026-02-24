@@ -22,6 +22,9 @@
       "identity": {
         "type": "SystemAssigned"
       },
+      "tags": {
+          "environment": "DEV-TESTING"
+    },
       "properties": {}
     }
   ],
