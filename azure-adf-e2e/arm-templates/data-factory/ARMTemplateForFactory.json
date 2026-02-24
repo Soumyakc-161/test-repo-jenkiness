@@ -68,10 +68,6 @@
                 "type": "AzureBlobStorage",
                 "typeProperties": {
                     "connectionString": "[parameters('CFT_Sink_AzureBlobStorage_connectionString')]"
-                },
-                "connectVia": {
-                    "referenceName": "AutoResolveIntegrationRuntime",
-                    "type": "IntegrationRuntimeReference"
                 }
             }
         },
@@ -95,7 +91,7 @@
                     }
                 },
                 "connectVia": {
-                    "referenceName": "AutoResolveIntegrationRuntime",
+                    "referenceName": "CFT-Self-Hosted-IR",
                     "type": "IntegrationRuntimeReference"
                 }
             }
@@ -120,7 +116,7 @@
                     }
                 },
                 "connectVia": {
-                    "referenceName": "AutoResolveIntegrationRuntime",
+                    "referenceName": "CFT-Self-Hosted-IR",
                     "type": "IntegrationRuntimeReference"
                 }
             }
