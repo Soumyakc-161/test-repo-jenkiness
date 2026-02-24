@@ -5,7 +5,7 @@
   "parameters": {
     "dataFactoryName": {
       "type": "string",
-      "defaultValue": "new_adf_to_test_jenkins"
+      "defaultValue": "NewAdfToTestJenkins"
     },
     "storageAccounts_cftproject_name": {
       "type": "string",
