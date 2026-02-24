@@ -374,7 +374,7 @@ stage('ARM What-If') {
         
 
        /* =====================================================
-           Deploy NEW Data Factory ARM Template
+           Deploy NEW Data Factory ARM Templat
         ====================================================== */
         stage('Deploy Data Factory Template') {
             steps {
