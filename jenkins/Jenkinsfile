@@ -447,7 +447,7 @@ stage('ARM What-If') {
                 --name adf-prod-%BUILD_NUMBER% ^
                 --resource-group CloudFrame-RG ^
                 --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
-                --parameters dataFactoryName=adf-prod ^
+                --parameters dataFactoryName=adf-prod-%BUILD_NUMBER% ^
                 --mode Incremental
 
                 IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
