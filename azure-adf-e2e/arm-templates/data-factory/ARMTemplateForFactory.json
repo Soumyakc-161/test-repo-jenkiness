@@ -58,6 +58,18 @@
         },
         "properties": {}
         },
+        {
+            "name": "[concat(parameters('factoryName'), '/CFT-Self-Hosted-IR')]",
+            "type": "Microsoft.DataFactory/factories/integrationRuntimes",
+            "apiVersion": "2018-06-01",
+            "dependsOn": [
+               "[resourceId('Microsoft.DataFactory/factories', parameters('factoryName'))]"
+            ],
+            "properties": {
+                "type": "SelfHosted",
+                "typeProperties": {}
+            }
+        },
         
         {
             "name": "[concat(parameters('factoryName'), '/CFT_Sink_AzureBlobStorage')]",
