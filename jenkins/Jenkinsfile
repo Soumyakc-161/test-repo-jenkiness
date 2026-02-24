@@ -373,36 +373,34 @@ stage('ARM What-If') {
         
         
 
-    //    /* =====================================================
-    //        9. Deploy NEW Data Factory ARM Templat
-    //     ====================================================== */
-    //     stage('Deploy Data Factory Template') {
-    //         steps {
-    //             bat '''
-    //             echo ==========================================
-    //             echo Deploying NEW Data Factory ARM template...
-    //             echo ==========================================
+       /* =====================================================
+           9. Deploy - DEV
+        ====================================================== */
+        stage('Deploy - DEV') {
+            when {
+                expression { params.ENV == 'DEV' }
+            }
+            steps {
+                bat '''
+                echo ==========================================
+                echo Deploying to DEV Environment
+                echo Factory Name : adf-dev
+                echo ==========================================
 
-    //             az deployment group create ^
-    //             --name adf-deploy-%BUILD_NUMBER% ^
-    //             --resource-group CloudFrame-RG ^
-    //             --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
-    //             --mode Incremental
+                az deployment group create ^
+                --name deployment-%BUILD_NUMBER% ^
+                --resource-group CloudFrame-RG ^
+                --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
+                --parameters dataFactoryName=adf-dev ^
+                --mode Incremental
 
-    //             IF %ERRORLEVEL% NEQ 0 (
-    //                 echo Deployment Failed!
-    //                 exit /b %ERRORLEVEL%
-    //             )
-
-    //             echo ==========================================
-    //             echo Data Factory Deployment Completed Successfully.
-    //             echo ==========================================
-    //             '''
-    //         }
-    //     }
+                IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+                '''
+            }
+        }
 
         /* =====================================================
-           Deploy TEST
+           10. Deploy - TEST
         ====================================================== */
         stage('Deploy - TEST') {
             when {
@@ -416,21 +414,19 @@ stage('ARM What-If') {
                 echo ==========================================
 
                 az deployment group create ^
-                --name adf-test-%BUILD_NUMBER% ^
+                --name deployment-%BUILD_NUMBER% ^
                 --resource-group CloudFrame-RG ^
                 --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
-                --parameters dataFactoryName=adf-test-%BUILD_NUMBER% ^
+                --parameters dataFactoryName=adf-test ^
                 --mode Incremental
 
                 IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
-
-                echo TEST Deployment Completed Successfully.
                 '''
             }
         }
 
         /* =====================================================
-           Deploy PROD
+           11. Deploy - PROD
         ====================================================== */
         stage('Deploy - PROD') {
             when {
@@ -444,19 +440,16 @@ stage('ARM What-If') {
                 echo ==========================================
 
                 az deployment group create ^
-                --name adf-prod-%BUILD_NUMBER% ^
+                --name deployment-%BUILD_NUMBER% ^
                 --resource-group CloudFrame-RG ^
                 --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
-                --parameters dataFactoryName=adf-prod-%BUILD_NUMBER% ^
+                --parameters dataFactoryName=adf-prod ^
                 --mode Incremental
 
                 IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
-
-                echo PROD Deployment Completed Successfully.
                 '''
             }
         }
-
     }
 }
     
