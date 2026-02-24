@@ -3,7 +3,7 @@ pipeline {
 
     parameters {
     string(name: 'BRANCH_NAME', defaultValue: '', description: 'Enter branch name manually')
-    choice(name: 'ENV', choices: ['DEV'], description: 'Select deployment environment')
+    choice(name: 'ENV', choices: ['DEV','TEST','PROD'], description: 'Select deployment environment')
 }
 
     stages {
@@ -373,35 +373,94 @@ stage('ARM What-If') {
         
         
 
-       /* =====================================================
-           Deploy NEW Data Factory ARM Templat
+    //    /* =====================================================
+    //        9. Deploy NEW Data Factory ARM Templat
+    //     ====================================================== */
+    //     stage('Deploy Data Factory Template') {
+    //         steps {
+    //             bat '''
+    //             echo ==========================================
+    //             echo Deploying NEW Data Factory ARM template...
+    //             echo ==========================================
+
+    //             az deployment group create ^
+    //             --name adf-deploy-%BUILD_NUMBER% ^
+    //             --resource-group CloudFrame-RG ^
+    //             --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
+    //             --mode Incremental
+
+    //             IF %ERRORLEVEL% NEQ 0 (
+    //                 echo Deployment Failed!
+    //                 exit /b %ERRORLEVEL%
+    //             )
+
+    //             echo ==========================================
+    //             echo Data Factory Deployment Completed Successfully.
+    //             echo ==========================================
+    //             '''
+    //         }
+    //     }
+
+        /* =====================================================
+           Deploy TEST
         ====================================================== */
-        stage('Deploy Data Factory Template') {
+        stage('Deploy - TEST') {
+            when {
+                expression { params.ENV == 'TEST' }
+            }
             steps {
                 bat '''
                 echo ==========================================
-                echo Deploying NEW Data Factory ARM template...
+                echo Deploying to TEST Environment
+                echo Factory Name : adf-test
                 echo ==========================================
 
                 az deployment group create ^
-                --name adf-deploy-%BUILD_NUMBER% ^
+                --name adf-test-%BUILD_NUMBER% ^
                 --resource-group CloudFrame-RG ^
                 --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
+                --parameters dataFactoryName=adf-test ^
                 --mode Incremental
 
-                IF %ERRORLEVEL% NEQ 0 (
-                    echo Deployment Failed!
-                    exit /b %ERRORLEVEL%
-                )
+                IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
-                echo ==========================================
-                echo Data Factory Deployment Completed Successfully.
-                echo ==========================================
+                echo TEST Deployment Completed Successfully.
                 '''
             }
         }
+
+        /* =====================================================
+           Deploy PROD
+        ====================================================== */
+        stage('Deploy - PROD') {
+            when {
+                expression { params.ENV == 'PROD' }
+            }
+            steps {
+                bat '''
+                echo ==========================================
+                echo Deploying to PROD Environment
+                echo Factory Name : adf-prod
+                echo ==========================================
+
+                az deployment group create ^
+                --name adf-prod-%BUILD_NUMBER% ^
+                --resource-group CloudFrame-RG ^
+                --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
+                --parameters dataFactoryName=adf-prod ^
+                --mode Incremental
+
+                IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+
+                echo PROD Deployment Completed Successfully.
+                '''
+            }
+        }
+
     }
-}                  
+}
+    
+                  
 
          
          
