@@ -3,7 +3,7 @@ pipeline {
 
     parameters {
     string(name: 'BRANCH_NAME', defaultValue: '', description: 'Enter branch name manually')
-    choice(name: 'ENV', choices: ['DEV','TEST','PROD'], description: 'Select deployment environment')
+    choice(name: 'ENV', choices: ['DEV','TEST'], description: 'Select deployment environment')
 }
 
     stages {
@@ -399,31 +399,31 @@ stage('ARM What-If') {
             }
         }
 
-        /* =====================================================
-           10. Deploy - TEST
-        ====================================================== */
-        stage('Deploy - TEST') {
-            when {
-                expression { params.ENV == 'TEST' }
-            }
-            steps {
-                bat '''
-                echo ==========================================
-                echo Deploying to TEST Environment
-                echo Factory Name : adf-test
-                echo ==========================================
+        // /* =====================================================
+        //    10. Deploy - TEST
+        // ====================================================== */
+        // stage('Deploy - TEST') {
+        //     when {
+        //         expression { params.ENV == 'TEST' }
+        //     }
+        //     steps {
+        //         bat '''
+        //         echo ==========================================
+        //         echo Deploying to TEST Environment
+        //         echo Factory Name : adf-test
+        //         echo ==========================================
 
-                az deployment group create ^
-                --name deployment-%BUILD_NUMBER% ^
-                --resource-group CloudFrame-RG ^
-                --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
-                --parameters dataFactoryName=cloudframe-test-adf ^
-                --mode Incremental
+        //         az deployment group create ^
+        //         --name deployment-%BUILD_NUMBER% ^
+        //         --resource-group CloudFrame-RG ^
+        //         --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
+        //         --parameters dataFactoryName=cloudframe-test-adf ^
+        //         --mode Incremental
 
-                IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
-                '''
-            }
-        }
+        //         IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+        //         '''
+        //     }
+        // }
 
         /* =====================================================
            11. Deploy - PROD
