@@ -1,0 +1,82 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+
+  "parameters": {
+    "storageAccountName": {
+      "type": "string",
+      "defaultValue": "cfstorage001dev",
+      "metadata": {
+        "description": "Storage Account Name for DEV"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "Central India",
+      "metadata": {
+        "description": "Azure region"
+      }
+    },
+    "skuName": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "Standard_GRS",
+        "Standard_RAGRS",
+        "Standard_ZRS",
+        "Premium_LRS"
+      ]
+    },
+    "kind": {
+      "type": "string",
+      "defaultValue": "StorageV2"
+    }
+  },
+
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-01-01",
+      "name": "[parameters('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('skuName')]"
+      },
+      "kind": "[parameters('kind')]",
+      "properties": {
+        "accessTier": "Hot",
+        "minimumTlsVersion": "TLS1_2",
+        "allowBlobPublicAccess": false,
+        "supportsHttpsTrafficOnly": true
+      }
+    }
+  ],
+
+  "outputs": {
+    "subscriptionId": {
+      "type": "string",
+      "value": "[subscription().subscriptionId]"
+    },
+    "resourceGroupName": {
+      "type": "string",
+      "value": "[resourceGroup().name]"
+    },
+    "storageAccountName": {
+      "type": "string",
+      "value": "[parameters('storageAccountName')]"
+    },
+    "region": {
+      "type": "string",
+      "value": "[parameters('location')]"
+    },
+    "performance": {
+      "type": "string",
+      "value": "[split(parameters('skuName'), '_')[0]]"
+    },
+    "redundancy": {
+      "type": "string",
+      "value": "[split(parameters('skuName'), '_')[1]]"
+    }
+  }
+}
