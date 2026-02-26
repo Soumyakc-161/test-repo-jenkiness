@@ -1,3 +1,9 @@
+// CI part code
+
+
+//Parameters in the initial interface to select proper the branch name and selcet the envinorment DEV or PROD 
+// if name is wrong then it will throw an error, should select the DEv or PROD environment then CI part will continue
+
 pipeline {
     agent any
 
@@ -9,7 +15,7 @@ pipeline {
     stages {
 
     /* =====================================================
-   1. Branch Validation & Checkout 
+  Stage 1. Branch Validation & Checkout 
 ====================================================== */
 stage('Validate Branch & Checkout') {
     steps {
@@ -61,7 +67,7 @@ Pipeline stopped immediately.
 
 
         /* =====================================================
-           2. Enforce ONLY JSON files in arm-templates
+        Stage 2. Enforce ONLY JSON files in arm-templates
         ====================================================== */
         stage('Validate File Types') {
             steps {
@@ -91,10 +97,10 @@ Pipeline stopped immediately.
         }
 
        /* =====================================================
-           3. Resource Group Template Validation
+          Stage 3. Resource Group Template Validation
 ====================================================== */
 
-// Validate RG(Parameters & Names)
+// part 1 - Validate RG(Parameters & Names)
 
 stage('Validate RG - Basics') {
     steps {
@@ -151,7 +157,7 @@ stage('Validate RG - Basics') {
     }
 }
 
-// Validate RG – Resource Types
+// Part 2 - Validate RG – Resource Types
 
 stage('Validate RG - Resources') {
     steps {
@@ -196,9 +202,11 @@ stage('Validate RG - Resources') {
 
 
  
-  /* =====================================================hi
+  /* =====================================================
            4. Storage Account Template Validation
         ====================================================== */
+// Part 1 - Storage Account Basics Validation
+
        stage('Validate - Storage Account Basics') {
     steps {
         bat '''
@@ -238,6 +246,8 @@ stage('Validate RG - Resources') {
         '''
     }
 }
+
+// part -2 Storage Account Resources Validation
 
 stage('Validate - Storage Account Resourcess') {
 steps {
@@ -304,14 +314,10 @@ stage('ARM What-If') {
     }
 }
 
-     
-
-
-
-
         /* ====================================================
            5. Data Factory Template Structure Validation
         ====================================================== */
+
         stage('Validate - Data Factory Templates') {
             steps {
                 bat '''
@@ -350,6 +356,7 @@ stage('ARM What-If') {
                 '''
             }
         }
+
         /* =====================================================
         //    7. Publish ARM Templates as Artifact
         // ====================================================== */
@@ -361,43 +368,50 @@ stage('ARM What-If') {
                                   fingerprint: true
              }
          }
-        /* =====================================================
-           8. Manual Approval Before Deployment
-        ====================================================== */
-        stage('Manual Approval Before Deployment') {
-            steps {
-                input message: "Approve deployment to ${params.ENV} environment?"
-            }
-        }
 
-        
-        
 
-       /* =====================================================
-           9. Deploy - DEV
-        ====================================================== */
-        stage('Deploy - DEV') {
-            when {
-                expression { params.ENV == 'DEV' }
-            }
-            steps {
-                bat '''
-                echo ==========================================
-                echo Deploying to DEV Environment
-                echo Factory Name : adf-dev
-                echo ==========================================
 
-                az deployment group create ^
-                --name deployment-%BUILD_NUMBER% ^
-                --resource-group CloudFrame-RG ^
-                --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
-                --parameters dataFactoryName=cloudframe-dev-adf ^
-                --mode Incremental
 
-                IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
-                '''
-            }
-        }
+// CD Part Code starts here
+
+
+
+        // /* =====================================================
+        //    8. Manual Approval Before Deployment
+        // ====================================================== */
+        // stage('Manual Approval Before Deployment') {
+        //     steps {
+        //         input message: "Approve deployment to ${params.ENV} environment?"
+        //     }
+        // }
+
+
+    //    /* =====================================================
+    //        9. Deploy - DEV ENVIRONMENT
+    //     ====================================================== */
+    //     stage('Deploy - DEV') {
+    //         when {
+    //             expression { params.ENV == 'DEV' }
+    //         }
+    //         steps {
+    //             bat '''
+    //             echo ==========================================
+    //             echo Deploying to DEV Environment
+    //             echo Factory Name : adf-dev
+    //             echo ==========================================
+
+    //             az deployment group create ^
+    //             --name deployment-%BUILD_NUMBER% ^
+    //             --resource-group CloudFrame-RG ^
+    //             --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
+    //             --parameters dataFactoryName=cloudframe-dev-adf ^
+    //             --mode Incremental
+
+    //             IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+    //             '''
+    //         }
+    //     }
+
 
         // /* =====================================================
         //    10. Deploy - TEST
@@ -409,7 +423,7 @@ stage('ARM What-If') {
         //     steps {
         //         bat '''
         //         echo ==========================================
-        //         echo Deploying to TEST Environment
+        //         echo Deploying to the TEST Environment 
         //         echo Factory Name : adf-test
         //         echo ==========================================
 
@@ -425,31 +439,32 @@ stage('ARM What-If') {
         //     }
         // }
 
-        /* =====================================================
-           11. Deploy - PROD
-        ====================================================== */
-        stage('Deploy - PROD') {
-            when {
-                expression { params.ENV == 'PROD' }
-            }
-            steps {
-                bat '''
-                echo ==========================================
-                echo Deploying to PROD Environment
-                echo Factory Name : adf-prod
-                echo ==========================================
 
-                az deployment group create ^
-                --name deployment-%BUILD_NUMBER% ^
-                --resource-group CloudFrame-RG ^
-                --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
-                --parameters dataFactoryName=cloudframe-prod-adf ^
-                --mode Incremental
+        // /* =====================================================
+        //    10. Deploy - PROD ENVIRONMENT
+        // ====================================================== */
+        // stage('Deploy - PROD') {
+        //     when {
+        //         expression { params.ENV == 'PROD' }
+        //     }
+        //     steps {
+        //         bat '''
+        //         echo ==========================================
+        //         echo Deploying to PROD Environment
+        //         echo Factory Name : adf-prod
+        //         echo ==========================================
 
-                IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
-                '''
-            }
-        }
+        //         az deployment group create ^
+        //         --name deployment-%BUILD_NUMBER% ^
+        //         --resource-group CloudFrame-RG ^
+        //         --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
+        //         --parameters dataFactoryName=cloudframe-prod-adf ^
+        //         --mode Incremental
+
+        //         IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+        //         '''
+        //     }
+        // }
     }
 }
     
