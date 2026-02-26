@@ -67,7 +67,7 @@ Pipeline stopped immediately.
 
 
         /* =====================================================
-        Stage 2. Enforce ONLY JSON files in arm-templates
+        Stage 2. Enforce ONLY JSON files in arm-template
         ====================================================== */
         stage('Validate File Types') {
             steps {
