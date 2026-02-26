@@ -1,10 +1,10 @@
 pipeline {
     agent any
 
-    environment {
-        RESOURCE_GROUP = "CloudFrame-RG"
-        TEMPLATE_FILE = "azure-adf-e2e/arm-templates/new_resources_dev.json"
-    }
+    // environment {
+    //     RESOURCE_GROUP = "CloudFrame-RG"
+    //     TEMPLATE_FILE = "azure-adf-e2e/arm-templates/new_resources_dev.json"
+    // }
 
     stages {
 
@@ -38,20 +38,30 @@ pipeline {
             }
         }
 
-        // stage('Deploy Storage Account - DEV') {
-        //     steps {
-        //         bat '''
-        //         echo Deploying Storage Account to DEV...
+       stage('Deploy Storage Account - DEV') {
+            steps {
+                bat '''
+                echo ======================================
+                echo Deploying Storage Account to DEV...
+                echo ======================================
 
-        //         az deployment group create ^
-        //         --name dev-sa-deploy-%BUILD_NUMBER% ^
-        //         --resource-group %RESOURCE_GROUP% ^
-        //         --template-file %TEMPLATE_FILE% ^
-        //         --mode Incremental
+                az deployment group create ^
+                --name dev-sa-deploy-%BUILD_NUMBER% ^
+                --resource-group %RESOURCE_GROUP% ^
+                --template-file %TEMPLATE_FILE% ^
+                --mode Incremental ^
+                --output none
 
-        //         IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
-        //         '''
-        //     }
-        // }
+                IF %ERRORLEVEL% EQU 0 (
+                    echo ======================================
+                    echo DEPLOYMENT SUCCESSFUL
+                    echo ======================================
+                ) ELSE (
+                    echo DEPLOYMENT FAILED
+                    exit /b %ERRORLEVEL%
+                )
+                '''
+            }
+        }
     }
 }
