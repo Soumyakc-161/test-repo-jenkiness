@@ -8,18 +8,6 @@ pipeline {
 
     stages {
 
-        stage('Checkout DEV Repo') {
-            steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: 'refs/heads/feature/test_repo_dev']],
-                    userRemoteConfigs: [[
-                        url: 'https://github.com/Soumyakc-161/test-repo-jenness.git'
-                    ]]
-                ])
-            }
-        }
-
         stage('Azure Login') {
             steps {
                 withCredentials([
@@ -29,6 +17,8 @@ pipeline {
                     string(credentialsId: 'AZ_SUB_ID', variable: 'SID')
                 ]) {
                     bat '''
+                    echo Logging into Azure...
+
                     az login --service-principal -u %CID% -p %CSEC% --tenant %TID%
                     az account set --subscription %SID%
                     '''
@@ -39,6 +29,8 @@ pipeline {
         stage('Validate Template (What-If)') {
             steps {
                 bat '''
+                echo Running What-If validation...
+
                 az deployment group what-if ^
                 --resource-group %RESOURCE_GROUP% ^
                 --template-file %TEMPLATE_FILE%
