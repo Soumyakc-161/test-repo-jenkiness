@@ -1,3 +1,477 @@
+// CI part code
+
+
+//Parameters in the initial interface to select proper the branch name and selcet the envinorment DEV or PROD 
+// if name is wrong then it will throw an error, should select the DEv or PROD environment then CI part will continue
+
+pipeline {
+    agent any
+
+    parameters {
+    string(name: 'BRANCH_NAME', defaultValue: '', description: 'Enter branch name manually')
+    // choice(name: 'ENV', choices: ['DEV','TEST'], description: 'Select deployment environment')
+}
+
+    stages {
+
+    /* =====================================================
+  Stage 1. Branch Validation & Checkout 
+====================================================== */
+stage('Validate Branch & Checkout') {
+    steps {
+        script {
+            def repoUrl = "https://github.com/Soumyakc-161/test-repo-jenkiness.git"
+
+            //  Hard stop if parameter is empty
+            if (!params.BRANCH_NAME || params.BRANCH_NAME.trim() == "") {
+                error " BRANCH_NAME parameter is EMPTY. Pipeline aborted."
+            }
+
+            echo " Branch entered: ${params.BRANCH_NAME}"
+
+            // Clean workspace to avoid cached success
+            deleteDir()
+
+            try {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: "refs/heads/${params.BRANCH_NAME}"]],
+                    userRemoteConfigs: [[
+                        url: repoUrl,
+                        refspec: "+refs/heads/*:refs/remotes/origin/*"
+                    ]],
+                    extensions: [
+                        [$class: 'CloneOption',
+                         shallow: false,
+                         noTags: false,
+                         timeout: 10]
+                    ]
+                ])
+
+                echo " Branch '${params.BRANCH_NAME}' VERIFIED and CHECKED OUT"
+
+            } catch (Exception e) {
+                error """
+FAILURE: BRANCH DOES NOT EXIST
+---------------------------------------
+Repository : ${repoUrl}
+Branch     : ${params.BRANCH_NAME}
+---------------------------------------
+Pipeline stopped immediately.
+"""
+            }
+        }
+    }
+}
+
+
+
+        /* =====================================================
+        Stage 2. Enforce ONLY JSON files in arm-template
+        ====================================================== */
+        stage('Validate File Types') {
+            steps {
+                script {
+                    echo " Enforcing JSON-only policy under arm-templates"
+
+                    def status = bat(
+                        script: '''
+                        @echo off
+                        for /R azure-adf-e2e\\arm-templates %%f in (*) do (
+                            if not "%%~xf"==".json" (
+                                echo Invalid file found: %%f
+                                exit /b 1
+                            )
+                        )
+                        ''',
+                        returnStatus: true
+                    )
+
+                    if (status != 0) {
+                        error " Non-JSON files detected"
+                    }
+
+                    echo " JSON-only validation passed"
+                }
+            }
+        }
+
+       /* =====================================================
+          Stage 3. Resource Group Template Validation
+====================================================== */
+
+// part 1 - Validate RG(Parameters & Names)
+
+stage('Validate RG - Basics') {
+    steps {
+        bat '''
+        echo  Validating RG Template Basics...
+
+        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
+        set PSFILE=validate-rg-basic.ps1
+
+        REM ===== File exists =====
+        if not exist %FILE% (
+            echo rg.json missing
+            exit /b 1
+        )
+
+        REM ===== Create PowerShell script =====
+        echo $ErrorActionPreference = 'Stop' > %PSFILE%
+        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
+
+        REM ---- Required parameters + strict values ----
+        echo $expected = @{ >> %PSFILE%
+        echo 'storageAccounts_cftproject_name'='cftproject'; >> %PSFILE%
+        echo 'workspaces_cft_databricks_name'='cft_databricks'; >> %PSFILE%
+        echo 'virtualNetworks_CFT_Virtual_Network_name'='CFT_Virtual_Network'; >> %PSFILE%
+        echo 'accessConnectors_adb_access_connector_name'='adb-access-connector'; >> %PSFILE%
+        echo 'networkSecurityGroups_databricksnsgmuuuizl5pkmwk_name'='databricksnsgmuuuizl5pkmwk'; >> %PSFILE%
+        echo 'userAssignedIdentities_databricks_uami_autoloader_name'='databricks-uami-autoloader' >> %PSFILE%
+        echo } >> %PSFILE%
+
+        echo foreach ($k in $expected.Keys) { >> %PSFILE%
+        echo   if (-not $json.parameters.$k) { >> %PSFILE%
+        echo     Write-Host \" Missing parameter: $k\" >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+        echo   if ($json.parameters.$k.defaultValue -ne $expected[$k]) { >> %PSFILE%
+        echo     Write-Host \" Wrong default value for $k\" >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+        echo } >> %PSFILE%
+
+        echo $subId = 'cfd34ebb-456e-4c5c-a8da-3d09bc871fef' >> %PSFILE%
+        echo $raw = Get-Content '%FILE%' -Raw >> %PSFILE%
+        echo $count = ([regex]::Matches($raw, $subId)).Count >> %PSFILE%
+        echo if ($count -lt 2) { >> %PSFILE%
+        echo   Write-Host \" Subscription ID missing or altered. Found count: $count\" >> %PSFILE%
+        echo   exit 1 >> %PSFILE%
+        echo } >> %PSFILE%
+
+
+        echo Write-Host 'RG basic validation PASSED' >> %PSFILE%
+
+        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
+        '''
+    }
+}
+
+// Part 2 - Validate RG – Resource Types
+
+stage('Validate RG - Resources') {
+    steps {
+        bat '''
+        echo Validating RG Template Resources...
+
+        set FILE=azure-adf-e2e\\arm-templates\\resource-group\\rg.json
+        set PSFILE=validate-rg-resources.ps1
+
+        echo $ErrorActionPreference = 'Stop' > %PSFILE%
+        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
+
+        REM ---- Required resource types ----
+        echo $requiredTypes = @( >> %PSFILE%
+        echo 'Microsoft.Databricks/workspaces', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts', >> %PSFILE%
+        echo 'Microsoft.Network/virtualNetworks', >> %PSFILE%
+        echo 'Microsoft.Network/networkSecurityGroups', >> %PSFILE%
+        echo 'Microsoft.ManagedIdentity/userAssignedIdentities', >> %PSFILE%
+        echo 'Microsoft.Databricks/accessConnectors', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/blobServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/fileServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/queueServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/tableServices', >> %PSFILE%
+        echo 'Microsoft.Storage/storageAccounts/blobServices/containers' >> %PSFILE%
+        echo ) >> %PSFILE%
+
+        echo foreach ($type in $requiredTypes) { >> %PSFILE%
+        echo   if (-not ($json.resources ^| Where-Object { $_.type -eq $type })) { >> %PSFILE%
+        echo     Write-Host \" Missing resource type: $type\" >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo   } >> %PSFILE%
+        echo } >> %PSFILE%
+
+        echo Write-Host 'RG resource validation PASSED' >> %PSFILE%
+
+        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
+        '''
+    }
+}
+
+
+
+ 
+  /* =====================================================
+           4. Storage Account Template Validation
+        ====================================================== */
+// Part 1 - Storage Account Basics Validation
+
+       stage('Validate - Storage Account Basics') {
+    steps {
+        bat '''
+        echo Validating Storage Account Template - Basics...
+
+        set FILE=azure-adf-e2e\\arm-templates\\storage-account\\storage.json
+        set PSFILE=validate-storage-basics.ps1
+
+        REM ===== File exists =====
+        if not exist %FILE% (
+            echo storage.json missing at expected path
+            exit /b 1
+        )
+
+        REM ===== Create PowerShell script =====
+        echo $ErrorActionPreference = 'Stop' > %PSFILE%
+        echo $expectedName = 'cftproject' >> %PSFILE%
+        echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
+
+        REM ---- Required parameter ----
+        echo if (-not $json.parameters.storageAccounts_cftproject_name) { >> %PSFILE%
+        echo     Write-Host 'Missing parameter: storageAccounts_cftproject_name' >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo } >> %PSFILE%
+
+        REM ---- Strict storage account name ----
+        echo $storageName = $json.parameters.storageAccounts_cftproject_name.defaultValue >> %PSFILE%
+        echo if ($storageName -ne $expectedName) { >> %PSFILE%
+        echo     Write-Host \"Storage account name must be '$expectedName'. Found: $storageName\" >> %PSFILE%
+        echo     exit 1 >> %PSFILE%
+        echo } >> %PSFILE%
+
+        echo Write-Host ' Storage Account basic validation PASSED' >> %PSFILE%
+
+        REM ===== Execute =====
+        powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
+        '''
+    }
+}
+
+// part -2 Storage Account Resources Validation
+
+stage('Validate - Storage Account Resourcess') {
+steps {
+bat '''
+       echo Validating Storage Account Template - Resources...
+
+       set FILE=azure-adf-e2e\\arm-templates\\storage-account\\storage.json
+       set PSFILE=validate-storage-resources.ps1
+
+       REM ===== Create PowerShell script =====
+       echo $ErrorActionPreference = 'Stop' > %PSFILE%
+       echo $json = Get-Content '%FILE%' ^| ConvertFrom-Json >> %PSFILE%
+
+       REM ---- Required resource types ----
+       echo $requiredTypes = @( >> %PSFILE%
+       echo 'Microsoft.Storage/storageAccounts', >> %PSFILE%
+       echo 'Microsoft.Storage/storageAccounts/blobServices', >> %PSFILE%
+       echo 'Microsoft.Storage/storageAccounts/fileServices', >> %PSFILE%
+       echo 'Microsoft.Storage/storageAccounts/queueServices', >> %PSFILE%
+       echo 'Microsoft.Storage/storageAccounts/tableServices', >> %PSFILE%
+       echo 'Microsoft.Storage/storageAccounts/blobServices/containers' >> %PSFILE%
+       echo ) >> %PSFILE%
+
+       echo foreach ($type in $requiredTypes) { >> %PSFILE%
+       echo     if (-not ($json.resources ^| Where-Object { $_.type -eq $type })) { >> %PSFILE%
+       echo         Write-Host \" Missing resource type: $type\" >> %PSFILE%
+       echo         exit 1 >> %PSFILE%
+       echo     } >> %PSFILE%
+       echo } >> %PSFILE%
+
+       echo Write-Host 'Storage Account resource validation PASSED' >> %PSFILE%
+
+       REM ===== Execute =====
+       powershell -NoProfile -ExecutionPolicy Bypass -File %PSFILE%
+       '''
+}
+}
+
+stage('Azure SP Login') {
+    steps {
+        withCredentials([
+            string(credentialsId: 'AZ_CLIENT_ID', variable: 'CID'),
+            string(credentialsId: 'AZ_CLIENT_SECRET', variable: 'CSEC'),
+            string(credentialsId: 'AZ_TENANT_ID', variable: 'TID'),
+            string(credentialsId: 'AZ_SUB_ID', variable: 'SID')
+        ]) {
+            bat '''
+            az login --service-principal -u %CID% -p %CSEC% --tenant %TID%
+            az account set --subscription %SID%
+            az account show
+            '''
+        }
+    }
+}
+
+stage('ARM What-If') {
+    steps {
+        bat '''
+        az deployment group what-if ^
+        --resource-group CloudFrame-RG ^
+        --template-file azure-adf-e2e\\arm-templates\\resource-group\\rg.json ^
+        --result-format FullResourcePayloads
+        '''
+    }
+}
+
+        /* ====================================================
+           5. Data Factory Template Structure Validation
+        ====================================================== */
+
+        stage('Validate - Data Factory Templates') {
+            steps {
+                bat '''
+                if not exist azure-adf-e2e\\arm-templates\\data-factory\\factory (
+                    echo factory folder missing
+                    exit /b 1
+                )
+
+                if not exist azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates (
+                    echo linkedTemplates folder missing
+                    exit /b 1
+                )
+
+                if not exist azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json (
+                    echo ARMTemplateForFactory.json missing
+                    exit /b 1
+                )
+
+                if not exist azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json (
+                    echo Parameters file missing
+                    exit /b 1
+                )
+
+                type azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateForFactory.json >nul || exit /b 1
+                type azure-adf-e2e\\arm-templates\\data-factory\\ARMTemplateParametersForFactory.json >nul || exit /b 1
+
+                for %%f in (azure-adf-e2e\\arm-templates\\data-factory\\factory\\*.json) do (
+                    type %%f >nul || exit /b 1
+                )
+
+                for %%f in (azure-adf-e2e\\arm-templates\\data-factory\\linkedTemplates\\*.json) do (
+                    type %%f >nul || exit /b 1
+                )
+
+                echo Data Factory structure OK
+                '''
+            }
+        }
+
+        /* =====================================================
+        //    7. Publish ARM Templates as Artifact
+        // ====================================================== */
+         stage('Publish ARM Artifact') {
+             steps {
+                 echo "Publishing ARM templates as CI artifact"
+
+                 archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
+                                  fingerprint: true
+             }
+         }
+
+
+
+
+// CD Part Code starts here
+
+
+
+        // /* =====================================================
+        //    8. Manual Approval Before Deployment
+        // ====================================================== */
+        // stage('Manual Approval Before Deployment') {
+        //     steps {
+        //         input message: "Approve deployment to ${params.ENV} environment?"
+        //     }
+        // }
+
+
+    //    /* =====================================================
+    //        9. Deploy - DEV ENVIRONMENT
+    //     ====================================================== */
+    //     stage('Deploy - DEV') {
+    //         when {
+    //             expression { params.ENV == 'DEV' }
+    //         }
+    //         steps {
+    //             bat '''
+    //             echo ==========================================
+    //             echo Deploying to DEV Environment
+    //             echo Factory Name : adf-dev
+    //             echo ==========================================
+
+    //             az deployment group create ^
+    //             --name deployment-%BUILD_NUMBER% ^
+    //             --resource-group CloudFrame-RG ^
+    //             --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
+    //             --parameters dataFactoryName=cloudframe-dev-adf ^
+    //             --mode Incremental
+
+    //             IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+    //             '''
+    //         }
+    //     }
+
+
+        // /* =====================================================
+        //    10. Deploy - TEST
+        // ====================================================== */
+        // stage('Deploy - TEST') {
+        //     when {
+        //         expression { params.ENV == 'TEST' }
+        //     }
+        //     steps {
+        //         bat '''
+        //         echo ==========================================
+        //         echo Deploying to the TEST Environment 
+        //         echo Factory Name : adf-test
+        //         echo ==========================================
+
+        //         az deployment group create ^
+        //         --name deployment-%BUILD_NUMBER% ^
+        //         --resource-group CloudFrame-RG ^
+        //         --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
+        //         --parameters dataFactoryName=cloudframe-test-adf ^
+        //         --mode Incremental
+
+        //         IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+        //         '''
+        //     }
+        // }
+
+
+        // /* =====================================================
+        //    10. Deploy - PROD ENVIRONMENT
+        // ====================================================== */
+        // stage('Deploy - PROD') {
+        //     when {
+        //         expression { params.ENV == 'PROD' }
+        //     }
+        //     steps {
+        //         bat '''
+        //         echo ==========================================
+        //         echo Deploying to PROD Environment
+        //         echo Factory Name : adf-prod
+        //         echo ==========================================
+
+        //         az deployment group create ^
+        //         --name deployment-%BUILD_NUMBER% ^
+        //         --resource-group CloudFrame-RG ^
+        //         --template-file azure-adf-e2e\\arm-templates\\data-factory\\new_adf_arm.json ^
+        //         --parameters dataFactoryName=cloudframe-prod-adf ^
+        //         --mode Incremental
+
+        //         IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+        //         '''
+        //     }
+        // }
+    }
+}
+    
+                  
+
+         
+         
 pipeline {
     agent any
 
