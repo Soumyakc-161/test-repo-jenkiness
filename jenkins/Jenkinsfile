@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        RESOURCE_GROUP = "CloudFrame-RG"
+        TEMPLATE_FILE = "azure-adf-e2e/arm-templates/storage-account/storage.json"
+    }
+
     stages {
 
         stage('Checkout DEV Repo') {
@@ -9,7 +14,7 @@ pipeline {
                     $class: 'GitSCM',
                     branches: [[name: 'refs/heads/feature/test_repo_dev']],
                     userRemoteConfigs: [[
-                        url: 'https://your-dev-repo-url.git'
+                        url: 'https://github.com/Soumyakc-161/test-repo-jenness.git'
                     ]]
                 ])
             }
@@ -31,6 +36,16 @@ pipeline {
             }
         }
 
+        stage('Validate Template (What-If)') {
+            steps {
+                bat '''
+                az deployment group what-if ^
+                --resource-group %RESOURCE_GROUP% ^
+                --template-file %TEMPLATE_FILE%
+                '''
+            }
+        }
+
         stage('Deploy Storage Account - DEV') {
             steps {
                 bat '''
@@ -38,8 +53,8 @@ pipeline {
 
                 az deployment group create ^
                 --name dev-sa-deploy-%BUILD_NUMBER% ^
-                --resource-group CloudFrame-RG ^
-                --template-file arm-templates/storage.json ^
+                --resource-group %RESOURCE_GROUP% ^
+                --template-file %TEMPLATE_FILE% ^
                 --mode Incremental
 
                 IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
