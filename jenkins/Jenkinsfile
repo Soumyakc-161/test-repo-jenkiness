@@ -1,10 +1,10 @@
 pipeline {
     agent any
 
-    // environment {
-    //     RESOURCE_GROUP = "CloudFrame-RG"
-    //     TEMPLATE_FILE = "azure-adf-e2e/arm-templates/new_resources_dev.json"
-    // }
+    environment {
+        RESOURCE_GROUP = "CloudFrame-RG"
+        TEMPLATE_FILE = "azure-adf-e2e/arm-templates/new_resources_dev.json"
+    }
 
     stages {
 
