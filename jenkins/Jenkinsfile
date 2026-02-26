@@ -38,20 +38,20 @@ pipeline {
             }
         }
 
-        stage('Deploy Storage Account - DEV') {
-            steps {
-                bat '''
-                echo Deploying Storage Account to DEV...
+        // stage('Deploy Storage Account - DEV') {
+        //     steps {
+        //         bat '''
+        //         echo Deploying Storage Account to DEV...
 
-                az deployment group create ^
-                --name dev-sa-deploy-%BUILD_NUMBER% ^
-                --resource-group %RESOURCE_GROUP% ^
-                --template-file %TEMPLATE_FILE% ^
-                --mode Incremental
+        //         az deployment group create ^
+        //         --name dev-sa-deploy-%BUILD_NUMBER% ^
+        //         --resource-group %RESOURCE_GROUP% ^
+        //         --template-file %TEMPLATE_FILE% ^
+        //         --mode Incremental
 
-                IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
-                '''
-            }
-        }
+        //         IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+        //         '''
+        //     }
+        // }
     }
 }
