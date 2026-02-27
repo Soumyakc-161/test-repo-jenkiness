@@ -45,24 +45,23 @@ pipeline {
         }
 
         stage('Deploy Storage Account - DEV ENV') {
-    steps {
-        script {
-            def status = bat(
-                returnStatus: true,
-                script: '''
+            steps {
+                bat '''
                 az deployment group create ^
                 --name dev-storage-%BUILD_NUMBER% ^
                 --resource-group %RESOURCE_GROUP% ^
                 --template-file azure-adf-e2e\\arm-templates\\storage-account\\storage.json ^
                 --parameters storageAccounts_cftproject_name=cfstorage001dev%BUILD_NUMBER% ^
-                --mode Incremental
-                '''
-            )
+                --mode Incremental ^
+                --output none
 
-            if (status == 0) {
-                echo "✅ Deployment completed successfully."
-            } else {
-                error("❌ Deployment failed! Check Azure error above.")
+                IF %ERRORLEVEL% NEQ 0 (
+                    echo Deployment failed!
+                    exit /b 1
+                )
+
+                echo Deployment completed successfully.
+                '''
             }
         }
     }
