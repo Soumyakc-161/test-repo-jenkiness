@@ -47,14 +47,24 @@ pipeline {
         stage('Deploy Storage Account - DEV') {
             steps {
                 bat '''
+                FOR /F %%i IN ('
                 az deployment group create ^
                 --name dev-storage-%BUILD_NUMBER% ^
                 --resource-group %RESOURCE_GROUP% ^
                 --template-file azure-adf-e2e\\arm-templates\\storage-account\\storage.json ^
                 --parameters storageAccounts_cftproject_name=cfstorage001dev%BUILD_NUMBER% ^
-                --mode Incremental
+                --mode Incremental ^
+                --query properties.provisioningState -o tsv
+                ') DO SET RESULT=%%i
 
-                IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+                echo Deployment Status: %RESULT%
+
+                IF "%RESULT%"=="Succeeded" (
+                    echo Deployment completed successfully.
+                ) ELSE (
+                    echo Deployment failed!
+                    exit /b 1
+                )
                 '''
             }
         }
