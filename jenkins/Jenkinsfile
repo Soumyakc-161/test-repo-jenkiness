@@ -58,7 +58,7 @@ pipeline {
                 if (status == 0) {
                 echo "✅ Deployment completed successfully."
             } else {
-                error("❌ Deployment failed. Check Azure error above.")
+                error("❌ Deployment failed!")
             }
         }
     }
