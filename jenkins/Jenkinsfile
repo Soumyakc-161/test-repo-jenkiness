@@ -49,25 +49,26 @@ pipeline {
 
         stage('Deploy Storage Account - PROD ENV') {
             steps {
-                bat """
-                echo BUILD NUMBER IS ${BUILD_NUMBER}
+                bat '''
+                echo BUILD NUMBER IS %BUILD_NUMBER%
 
                 az deployment group create ^
-                --name prod-storage-${BUILD_NUMBER} ^
+                --name prod-storage-%BUILD_NUMBER% ^
                 --resource-group %RESOURCE_GROUP% ^
                 --template-file azure-adf-e2e\\arm-templates\\storage-account\\storage.json ^
-                --parameters storageAccounts_cftproject_name=cfstorage001prod${BUILD_NUMBER} ^
+                --parameters storageAccounts_cftproject_name=cfstorage001prod%BUILD_NUMBER% ^
                 --mode Incremental ^
                 --output none
 
                 IF %ERRORLEVEL% NEQ 0 (
-                    echo Deployment failed!
+                    echo ❌ PROD Deployment failed!
                     exit /b 1
                 )
 
-                echo PROD deployment completed successfully.
-                """
+                echo ✅ PROD deployment completed successfully.
+                '''
             }
         }
+
     }
 }
