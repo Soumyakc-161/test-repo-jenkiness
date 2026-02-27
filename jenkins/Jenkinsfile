@@ -1,12 +1,31 @@
 pipeline {
     agent any
 
+    options {
+        skipDefaultCheckout(true)   // 🔥 Important: do not use branch code
+    }
+
     environment {
-        RESOURCE_GROUP = "CloudFrame-RG"
-        TEMPLATE_FILE = "azure-adf-e2e/arm-templates/storage-account/storage.json"
+        RESOURCE_GROUP = "CloudFrame-RG"   // Change if you have PROD RG
     }
 
     stages {
+
+        stage('Clean Workspace') {
+            steps {
+                deleteDir()
+            }
+        }
+
+        stage('Download Artifact From CI') {
+            steps {
+                copyArtifacts(
+                    projectName: 'DemoPipeline10',   // 🔥 Your CI job name
+                    selector: lastSuccessful(),     // Can change to specific build later
+                    fingerprintArtifacts: true
+                )
+            }
+        }
 
         stage('Azure Login') {
             steps {
@@ -17,8 +36,6 @@ pipeline {
                     string(credentialsId: 'AZ_SUB_ID', variable: 'SID')
                 ]) {
                     bat '''
-                    echo Logging into Azure...
-
                     az login --service-principal -u %CID% -p %CSEC% --tenant %TID%
                     az account set --subscription %SID%
                     '''
@@ -26,34 +43,29 @@ pipeline {
             }
         }
 
-        stage('Validate Template (What-If)') {
+        stage('Approval Before PROD') {
             steps {
-                bat '''
-                az deployment group what-if ^
-                --resource-group %RESOURCE_GROUP% ^
-                --template-file %TEMPLATE_FILE%
-                '''
+                input message: "Approve deployment to PROD?"
             }
         }
 
         stage('Deploy Storage Account - PROD') {
             steps {
                 bat '''
-                echo Deploying Storage Account to PROD...
-
                 az deployment group create ^
-                --name prod-sa-deploy-%BUILD_NUMBER% ^
+                --name prod-storage-%BUILD_NUMBER% ^
                 --resource-group %RESOURCE_GROUP% ^
-                --template-file %TEMPLATE_FILE% ^
+                --template-file azure-adf-e2e\\arm-templates\\storage-account\\storage.json ^
+                --parameters storageAccounts_cftproject_name=cfstorage001prod ^
                 --mode Incremental ^
                 --output none
 
-                IF %ERRORLEVEL% EQU 0 (
-                    echo DEPLOYMENT SUCCESSFUL
-                ) ELSE (
-                    echo DEPLOYMENT FAILED
-                    exit /b %ERRORLEVEL%
+                IF %ERRORLEVEL% NEQ 0 (
+                    echo Deployment failed!
+                    exit /b 1
                 )
+
+                echo PROD deployment completed successfully.
                 '''
             }
         }
