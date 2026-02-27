@@ -56,7 +56,7 @@ pipeline {
                 --name prod-storage-%BUILD_NUMBER% ^
                 --resource-group %RESOURCE_GROUP% ^
                 --template-file azure-adf-e2e\\arm-templates\\storage-account\\storage.json ^
-                --parameters storageAccounts_cftproject_name=cfstorage001prod ^
+                --parameters storageAccounts_cftproject_name=cfstorage002prod ^
                 --mode Incremental ^
                 --output none
 
