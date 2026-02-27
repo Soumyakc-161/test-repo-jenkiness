@@ -44,7 +44,7 @@ pipeline {
             }
         }
 
-        stage('Deploy Storage Account - DEV') {
+        stage('Deploy Storage Account - DEV ENV') {
             steps {
                 bat '''
                 az deployment group create ^
@@ -55,12 +55,12 @@ pipeline {
                 --mode Incremental ^
                 --output none
 
-                IF %ERRORLEVEL% EQU 0 (
-                    echo Deployment completed successfully.
-                ) ELSE (
+                IF %ERRORLEVEL% NEQ 0 (
                     echo Deployment failed!
                     exit /b 1
                 )
+
+                echo Deployment completed successfully.
                 '''
             }
         }
