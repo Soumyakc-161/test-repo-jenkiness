@@ -1,9 +1,14 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'BRANCH_NAME', defaultValue: 'feature/test_repo_dev', description: 'Enter branch name')
+    }
+
     environment {
         RESOURCE_GROUP = "CloudFrame-RG"
     }
+
 
     stages {
 
@@ -46,7 +51,7 @@ pipeline {
                 --name dev-storage-%BUILD_NUMBER% ^
                 --resource-group %RESOURCE_GROUP% ^
                 --template-file azure-adf-e2e\\arm-templates\\storage-account\\storage.json ^
-                --parameters storageAccountName=cfstorage001dev ^
+                --parameters storageAccounts_cfproject_name=cfstorage001dev ^
                 --mode Incremental
 
                 IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
