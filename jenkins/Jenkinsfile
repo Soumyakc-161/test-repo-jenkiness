@@ -5,10 +5,13 @@ pipeline {
         string(name: 'BRANCH_NAME', defaultValue: '', description: 'Enter branch name')
     }
 
+    options {
+        skipDefaultCheckout(true)
+    }
+
     environment {
         RESOURCE_GROUP = "CloudFrame-RG"
     }
-
 
     stages {
 
@@ -21,7 +24,7 @@ pipeline {
         stage('Download Artifact From CI') {
             steps {
                 copyArtifacts(
-                    projectName: 'DemoPipeline10',  // 🔥 replace
+                    projectName: 'DemoPipeline10',
                     selector: lastSuccessful(),
                     fingerprintArtifacts: true
                 )
@@ -44,14 +47,16 @@ pipeline {
             }
         }
 
-        stage('Deploy Storage Account - DEV ENV') {
+        stage('Deploy Storage Account - PROD ENV') {
             steps {
-                bat '''
+                bat """
+                echo BUILD NUMBER IS ${BUILD_NUMBER}
+
                 az deployment group create ^
-                --name dev-storage-%BUILD_NUMBER% ^
+                --name prod-storage-${BUILD_NUMBER} ^
                 --resource-group %RESOURCE_GROUP% ^
                 --template-file azure-adf-e2e\\arm-templates\\storage-account\\storage.json ^
-                --parameters storageAccounts_cftproject_name=cfstorage001prod%BUILD_NUMBER% ^
+                --parameters storageAccounts_cftproject_name=cfstorage001prod${BUILD_NUMBER} ^
                 --mode Incremental ^
                 --output none
 
@@ -60,8 +65,8 @@ pipeline {
                     exit /b 1
                 )
 
-                echo Deployment completed successfully.
-                '''
+                echo PROD deployment completed successfully.
+                """
             }
         }
     }
