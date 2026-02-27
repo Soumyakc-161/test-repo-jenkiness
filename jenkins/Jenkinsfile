@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'BRANCH_NAME', defaultValue: 'feature/test_repo_dev', description: 'Enter branch name')
+        string(name: 'BRANCH_NAME', defaultValue: '', description: 'Enter branch name')
     }
 
     environment {
