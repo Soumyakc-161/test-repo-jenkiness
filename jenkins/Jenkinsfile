@@ -51,7 +51,7 @@ pipeline {
                 --name dev-storage-%BUILD_NUMBER% ^
                 --resource-group %RESOURCE_GROUP% ^
                 --template-file azure-adf-e2e\\arm-templates\\storage-account\\storage.json ^
-                --parameters storageAccounts_cfproject_name=cfstorage001dev ^
+                --parameters storageAccounts_cftproject_name=cfstorage001dev ^
                 --mode Incremental
 
                 IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
