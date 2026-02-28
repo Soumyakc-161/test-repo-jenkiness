@@ -2,19 +2,47 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'BRANCH_NAME', defaultValue: '', description: 'Enter branch name')
+        string(name: 'BRANCH_NAME', defaultValue: '', description: 'Enter branch name (feature/test_repo_dev or feature/test_repo_prod)')
+    }
+
+    options {
+        skipDefaultCheckout(true)
     }
 
     environment {
         RESOURCE_GROUP = "CloudFrame-RG"
     }
 
-
     stages {
 
         stage('Clean Workspace') {
             steps {
                 deleteDir()
+            }
+        }
+
+        //  Strong Branch Validation + Checkout
+        stage('Validate & Checkout Branch') {
+            steps {
+                script {
+                    if (params.BRANCH_NAME?.trim() == "") {
+                        error "Branch name cannot be empty!"
+                    }
+
+                    echo "Validating branch: ${params.BRANCH_NAME}"
+
+                    def branchCheck = bat(
+                        script: "git ls-remote --heads https://github.com/Soumyakc-161/test-repo-jenkiness.git ${params.BRANCH_NAME}",
+                        returnStatus: true
+                    )
+
+                    if (branchCheck != 0) {
+                        error "Branch '${params.BRANCH_NAME}' does NOT exist in repository!"
+                    }
+                }
+
+                git branch: "${params.BRANCH_NAME}",
+                    url: 'https://github.com/Soumyakc-161/test-repo-jenkiness.git'
             }
         }
 
