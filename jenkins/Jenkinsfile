@@ -2,11 +2,10 @@ pipeline {
     agent any
 
     options {
-        skipDefaultCheckout(true)   // 🔥 Important: do not use branch code
-    }
+        skipDefaultCheckout(true)   
 
     environment {
-        RESOURCE_GROUP = "CloudFrame-RG"   // Change if you have PROD RG
+        RESOURCE_GROUP = "CloudFrame-RG"   
     }
 
     stages {
