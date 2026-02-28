@@ -1,11 +1,16 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'BRANCH_NAME', defaultValue: '', description: 'Enter branch name')
+    }
+
     options {
-        skipDefaultCheckout(true)   
+        skipDefaultCheckout(true)
+    }
 
     environment {
-        RESOURCE_GROUP = "CloudFrame-RG"   
+        RESOURCE_GROUP = "CloudFrame-RG"
     }
 
     stages {
