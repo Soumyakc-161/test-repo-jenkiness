@@ -21,6 +21,36 @@ pipeline {
             }
         }
 
+        //  Strict Branch Validation (Will fail if wrong)
+        stage('Validate & Checkout Branch') {
+            steps {
+                script {
+                    if (params.BRANCH_NAME?.trim() == "") {
+                        error "Branch name cannot be empty!"
+                    }
+
+                    // Optional: enforce only PROD branch
+                    if (params.BRANCH_NAME != "feature/test_repo_prod") {
+                        error "This PROD pipeline only accepts 'feature/test_repo_prod' branch!"
+                    }
+
+                    echo "Validating branch: ${params.BRANCH_NAME}"
+
+                    def branchOutput = bat(
+                        script: "git ls-remote --heads https://github.com/Soumyakc-161/test-repo-jenkiness.git ${params.BRANCH_NAME}",
+                        returnStdout: true
+                    ).trim()
+
+                    if (branchOutput == "") {
+                        error "Branch '${params.BRANCH_NAME}' does NOT exist in repository!"
+                    }
+                }
+
+                git branch: "${params.BRANCH_NAME}",
+                    url: 'https://github.com/Soumyakc-161/test-repo-jenkiness.git'
+            }
+        }
+
         stage('Download Artifact From CI') {
             steps {
                 copyArtifacts(
