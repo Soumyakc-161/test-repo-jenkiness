@@ -21,7 +21,7 @@ pipeline {
             }
         }
 
-        //  Strong Branch Validation + Checkout
+        // ✅ FIXED VALIDATION STAGE
         stage('Validate & Checkout Branch') {
             steps {
                 script {
@@ -31,12 +31,12 @@ pipeline {
 
                     echo "Validating branch: ${params.BRANCH_NAME}"
 
-                    def branchCheck = bat(
+                    def branchOutput = bat(
                         script: "git ls-remote --heads https://github.com/Soumyakc-161/test-repo-jenkiness.git ${params.BRANCH_NAME}",
-                        returnStatus: true
-                    )
+                        returnStdout: true
+                    ).trim()
 
-                    if (branchCheck != 0) {
+                    if (branchOutput == "") {
                         error "Branch '${params.BRANCH_NAME}' does NOT exist in repository!"
                     }
                 }
